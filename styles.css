@@ -902,17 +902,28 @@ input:focus, select:focus {
     }
 
     .weekly-table {
-        min-width: 600px;
+        min-width: 800px; /* Make sure it's wide enough so pills don't squish */
+    }
+
+    .weekly-schedule-item {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.4rem;
+        white-space: nowrap; /* Prevent pill text wrapping */
     }
 
     /* Monthly calendar tweaks for "At a glance" view */
     .monthly-calendar {
-        min-width: unset; /* Remove 800px restriction so it fits screen */
+        min-width: 100%; /* Fit exactly to screen */
+    }
+    
+    /* Prevent grid blowout */
+    .monthly-header, .monthly-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
     }
 
     .monthly-header div {
         padding: 0.3rem 0;
-        font-size: 0.7rem; /* Smaller day names (일,월,화) */
+        font-size: 0.7rem; 
     }
 
     .monthly-grid {

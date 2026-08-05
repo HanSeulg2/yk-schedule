@@ -902,13 +902,18 @@ input:focus, select:focus {
     }
 
     .weekly-table {
-        min-width: 800px; /* Make sure it's wide enough so pills don't squish */
+        min-width: 900px; /* Make it even wider to prevent truncation */
+    }
+
+    .weekly-table td, .weekly-table th {
+        padding: 0.4rem 0.2rem; /* Reduce padding to give pills more space */
     }
 
     .weekly-schedule-item {
         font-size: 0.75rem;
-        padding: 0.3rem 0.4rem;
+        padding: 0.3rem;
         white-space: nowrap; /* Prevent pill text wrapping */
+        text-overflow: clip; /* Do not show ellipsis */
     }
 
     /* Monthly calendar tweaks for "At a glance" view */

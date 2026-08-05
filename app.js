@@ -741,6 +741,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.setProperty('--bg-color-1', sched.color1);
                     item.style.setProperty('--bg-color-2', sched.color2);
                     item.innerHTML = `${sched.start}~${sched.end}<button class="delete-weekly-btn" data-id="${sched.id}">&times;</button>`;
+                    item.addEventListener('click', () => {
+                        alert(`근무자: ${emp.name}\n시간: ${sched.start} ~ ${sched.end}`);
+                    });
                     item.querySelector('.delete-weekly-btn').addEventListener('click', (e) => { e.stopPropagation(); removeSchedule(e.target.dataset.id); });
                     td.appendChild(item);
                 });
@@ -786,6 +789,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${sched.empName} (${sched.start}~${sched.end})
                     <button class="delete-monthly-btn" data-id="${sched.id}">&times;</button>
                 `;
+                item.addEventListener('click', () => {
+                    alert(`근무자: ${sched.empName}\n일자: ${dateStr}\n시간: ${sched.start} ~ ${sched.end}`);
+                });
                 item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
                     e.stopPropagation(); removeSchedule(e.target.dataset.id);
                 });

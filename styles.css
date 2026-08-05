@@ -128,7 +128,7 @@ header h1 {
 /* Main Layout */
 .layout-grid {
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 1fr;
     gap: 2rem;
     height: calc(100vh - 140px);
 }

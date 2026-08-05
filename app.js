@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let schedules = [];
     let currentDate = new Date();
     let viewMode = 'daily';
+    let salaryChartInstance = null;
     let adminPassword = '0000';
     let currentSalaryData = []; // For Excel and Payslips
     let passwordTargetAction = 'salary';
@@ -834,6 +835,46 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function calculateMonthlyTotalSalary(year, month) {
+        const monthScheds = schedules.filter(s => {
+            const d = new Date(s.date);
+            return d.getFullYear() === year && d.getMonth() === month;
+        });
+
+        let totalMonthSalary = 0;
+
+        employees.forEach(emp => {
+            const empScheds = monthScheds.filter(s => s.empId === emp.id);
+            if (empScheds.length === 0) return;
+            
+            const wage = emp.hourlyWage || 10030;
+            let totalNet = 0;
+            let weeklyHours = {};
+
+            empScheds.forEach(sched => {
+                const dur = calculateDuration(sched.start, sched.end);
+                totalNet += dur.net;
+
+                const weekNo = getWeekNumber(new Date(sched.date));
+                if(!weeklyHours[weekNo]) weeklyHours[weekNo] = 0;
+                weeklyHours[weekNo] += dur.net;
+            });
+
+            let totalAllowance = 0;
+            Object.keys(weeklyHours).forEach(weekNo => {
+                const hrs = weeklyHours[weekNo];
+                if(hrs >= 15) {
+                    const cappedHrs = Math.min(hrs, 40);
+                    totalAllowance += (cappedHrs / 40) * 8 * wage;
+                }
+            });
+
+            totalMonthSalary += (totalNet * wage) + totalAllowance;
+        });
+
+        return totalMonthSalary;
+    }
+
     function renderSalaryView(baseDate) {
         salaryTbody.innerHTML = '';
         if(employees.length === 0) {
@@ -850,6 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         currentSalaryData = []; // Clear array
+        let currentMonthTotal = 0;
 
         employees.forEach(emp => {
             const empScheds = monthScheds.filter(s => s.empId === emp.id).sort((a,b) => a.date.localeCompare(b.date));
@@ -905,6 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const estimatedSalary = (totalNet * wage) + totalAllowance;
+            currentMonthTotal += estimatedSalary;
 
             // Push to excel data
             currentSalaryData.push({
@@ -939,6 +982,111 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.addEventListener('click', () => openPayslipModal(currentSalaryData[currentSalaryData.length-1]._raw));
             salaryTbody.appendChild(tr);
         });
+
+        // Update Stats Widget
+        const statsWidget = document.getElementById('salary-stats-widget');
+        const statsCurrentTotal = document.getElementById('stats-current-total');
+        const statsCompareText = document.getElementById('stats-compare-text');
+        
+        if (currentMonthTotal > 0 || schedules.length > 0) {
+            statsWidget.style.display = 'block';
+            statsCurrentTotal.textContent = Math.round(currentMonthTotal).toLocaleString() + '원';
+
+            // Calculate previous month total
+            let prevYear = year;
+            let prevMonth = month - 1;
+            if (prevMonth < 0) {
+                prevMonth = 11;
+                prevYear--;
+            }
+            const prevMonthTotal = calculateMonthlyTotalSalary(prevYear, prevMonth);
+            
+            if (prevMonthTotal === 0) {
+                statsCompareText.textContent = '전월 데이터 없음';
+                statsCompareText.style.color = 'var(--text-muted)';
+            } else {
+                const diff = currentMonthTotal - prevMonthTotal;
+                const percent = (Math.abs(diff) / prevMonthTotal) * 100;
+                
+                if (diff > 0) {
+                    statsCompareText.innerHTML = `<span style="color: var(--danger);">${percent.toFixed(1)}% 증가 🔺</span>`;
+                } else if (diff < 0) {
+                    statsCompareText.innerHTML = `<span style="color: var(--primary);">${percent.toFixed(1)}% 감소 🔻</span>`;
+                } else {
+                    statsCompareText.innerHTML = `<span style="color: white;">전월과 동일 (-)</span>`;
+                }
+            }
+
+            // Draw Chart.js (Past 6 months trend)
+            const ctx = document.getElementById('salaryChart').getContext('2d');
+            if (salaryChartInstance) {
+                salaryChartInstance.destroy(); // Prevent overlay/memory leak
+            }
+
+            // Calculate past 6 months data
+            const labels = [];
+            const data = [];
+            for (let i = 5; i >= 0; i--) {
+                let y = year;
+                let m = month - i;
+                if (m < 0) {
+                    m += 12;
+                    y--;
+                }
+                const mTotal = (i === 0) ? currentMonthTotal : calculateMonthlyTotalSalary(y, m);
+                labels.push(`${m + 1}월`);
+                data.push(Math.round(mTotal));
+            }
+
+            // Render Chart
+            salaryChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '인건비 총액 (원)',
+                        data: data,
+                        backgroundColor: data.map((val, idx) => idx === 5 ? 'rgba(99, 102, 241, 0.8)' : 'rgba(255, 255, 255, 0.2)'),
+                        borderColor: data.map((val, idx) => idx === 5 ? 'rgba(99, 102, 241, 1)' : 'rgba(255, 255, 255, 0.4)'),
+                        borderWidth: 1,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                callback: function(value) {
+                                    return (value / 10000).toLocaleString() + '만';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                    }
+                }
+            });
+
+        } else {
+            statsWidget.style.display = 'none';
+        }
     }
 
     // Modal and Excel Logic

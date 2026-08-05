@@ -7,7 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=1.4">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css?v=1.7">
 </head>
 <body>
     <div class="ambient-bg">
@@ -179,6 +181,26 @@
                             <!-- 급여 렌더링 -->
                         </tbody>
                     </table>
+
+                    <!-- 통계 위젯 -->
+                    <div id="salary-stats-widget" style="display: none; background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; margin-top: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                        <h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            📊 알바생 급여 지출 통계 현황
+                        </h4>
+                        <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: baseline;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">이번 달 총 지출 예상액</div>
+                                <div id="stats-current-total" style="font-size: 1.8rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px;">0원</div>
+                            </div>
+                            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">전월 대비 증감률</div>
+                                <div id="stats-compare-text" style="font-size: 1.2rem; font-weight: 600;">-</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem; position: relative; height: 250px; width: 100%;">
+                            <canvas id="salaryChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -284,6 +306,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="app.js?v=1.5"></script>
+    <script src="app.js?v=1.7"></script>
 </body>
 </html>

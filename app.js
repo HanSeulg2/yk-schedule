@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let viewMode = 'daily';
     let adminPassword = '0000';
     let currentSalaryData = []; // For Excel and Payslips
+    let passwordTargetAction = 'salary';
 
     // DOM Elements - Controls
     const empNameInput = document.getElementById('emp-name');
@@ -159,7 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if(pwd === adminPassword) {
             passwordModal.style.display = 'none';
             salaryPasswordInput.value = '';
-            setViewMode('salary');
+            
+            if (passwordTargetAction === 'salary') {
+                setViewMode('salary');
+            } else if (passwordTargetAction === 'clear') {
+                executeClearSchedules();
+            }
         } else {
             alert('비밀번호가 일치하지 않습니다.');
             salaryPasswordInput.value = '';
@@ -238,11 +244,18 @@ document.addEventListener('DOMContentLoaded', () => {
     viewMonthlyBtn.addEventListener('click', () => setViewMode('monthly'));
     viewSalaryBtn.addEventListener('click', () => {
         if (viewMode === 'salary') return;
+        passwordTargetAction = 'salary';
         passwordModal.style.display = 'flex';
         salaryPasswordInput.focus();
     });
     
-    clearSchedulesBtn.addEventListener('click', async () => {
+    clearSchedulesBtn.addEventListener('click', () => {
+        passwordTargetAction = 'clear';
+        passwordModal.style.display = 'flex';
+        salaryPasswordInput.focus();
+    });
+
+    async function executeClearSchedules() {
         let msg = '초기화하시겠습니까?';
         let toDelete = [];
 
@@ -275,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(e);
             }
         }
-    });
+    }
 
     // Helpers
     function formatDateString(date) {

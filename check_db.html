@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>파이어베이스 데이터 확인</title>
+</head>
+<body>
+    <h2>DB 데이터 확인</h2>
+    <pre id="out"></pre>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+    <script>
+        setTimeout(async () => {
+            const out = document.getElementById('out');
+            try {
+                const s = await db.collection('schedules').get();
+                out.textContent = '총 스케줄 개수: ' + s.docs.length + '\n';
+                if(s.docs.length > 0) {
+                    const first5 = s.docs.slice(0, 5).map(d => d.data());
+                    out.textContent += JSON.stringify(first5, null, 2);
+                }
+            } catch(e) {
+                out.textContent = e.message;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

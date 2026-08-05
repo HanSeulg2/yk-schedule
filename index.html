@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YK Schedule</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- 헤더 -->
+        <header class="glass-panel">
+            <div class="header-content">
+                <h1>YK Schedule</h1>
+                <p class="subtitle">알바 근무자 24시간 일정 관리 시스템</p>
+            </div>
+            <div class="header-date" id="current-date"></div>
+        </header>
+
+        <main>
+            <div class="layout-grid">
+                <!-- 컨트롤 패널 (좌측) -->
+                <aside class="controls">
+                <!-- 스케줄 관리 -->
+
+
+                <section class="glass-panel control-section">
+                    <h2>스케줄 등록</h2>
+                    
+                    <div class="schedule-mode-toggle">
+                        <label class="radio-label"><input type="radio" name="sched-mode" value="single" checked> <span>단일 날짜</span></label>
+                        <label class="radio-label"><input type="radio" name="sched-mode" value="recurring"> <span>기간 & 요일 반복</span></label>
+                    </div>
+                    
+                    <div id="single-date-wrapper" class="form-group mt-1">
+                        <label>날짜</label>
+                        <input type="date" id="schedule-date">
+                    </div>
+                    
+                    <div id="recurring-date-wrapper" class="form-group mt-1" style="display: none;">
+                        <label>기간 (시작일 ~ 종료일)</label>
+                        <div class="input-row">
+                            <input type="date" id="schedule-start-date">
+                            <input type="date" id="schedule-end-date">
+                        </div>
+                        <label class="mt-1">반복할 요일</label>
+                        <div class="weekday-selector">
+                            <label><input type="checkbox" value="1"> <span>월</span></label>
+                            <label><input type="checkbox" value="2"> <span>화</span></label>
+                            <label><input type="checkbox" value="3"> <span>수</span></label>
+                            <label><input type="checkbox" value="4"> <span>목</span></label>
+                            <label><input type="checkbox" value="5"> <span>금</span></label>
+                            <label><input type="checkbox" value="6"> <span>토</span></label>
+                            <label><input type="checkbox" value="0"> <span>일</span></label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-1">
+                        <label>근무자 선택</label>
+                        <select id="schedule-emp">
+                            <option value="" disabled selected>근무자를 추가해주세요</option>
+                        </select>
+                    </div>
+                    <div class="time-inputs mt-1">
+                        <div class="form-group">
+                            <label>시작 시간</label>
+                            <input type="time" id="start-time" value="09:30">
+                        </div>
+                        <div class="form-group">
+                            <label>종료 시간</label>
+                            <input type="time" id="end-time" value="14:30">
+                        </div>
+                    </div>
+                    <button id="add-schedule-btn" class="btn accent w-full mt-2">스케줄 등록</button>
+                </section>
+            </aside>
+
+            <!-- 타임라인 보드 (우측) -->
+            <section class="board glass-panel">
+                <div class="board-header">
+                    <div class="board-controls">
+                        <button id="prev-date-btn" class="btn outline-light btn-sm">&lt;</button>
+                        <h2 id="board-date-display">오늘의 스케줄</h2>
+                        <button id="next-date-btn" class="btn outline-light btn-sm">&gt;</button>
+                        <button id="today-btn" class="btn outline-light btn-sm ml-2">오늘</button>
+                    </div>
+                    
+                    <div class="view-toggles">
+                        <button id="view-daily-btn" class="btn primary btn-sm active">일간 타임라인</button>
+                        <button id="view-weekly-btn" class="btn btn-sm">주간 표</button>
+                        <button id="view-monthly-btn" class="btn btn-sm">월간 달력</button>
+                        <button id="view-salary-btn" class="btn outline-light btn-sm ml-2">급여 대장 🔒</button>
+                        <button id="clear-schedules-btn" class="btn outline-danger btn-sm ml-4" title="현재 날짜/뷰의 데이터 초기화">초기화</button>
+                    </div>
+                </div>
+                
+                <!-- 일간 뷰 -->
+                <div class="timeline-wrapper" id="view-container-daily">
+                    <div class="time-header" id="time-header"></div>
+                    <div class="timeline-grid" id="timeline-grid"></div>
+                </div>
+
+                <!-- 주간 뷰 -->
+                <div class="timeline-wrapper" id="view-container-weekly" style="display: none;">
+                    <table class="weekly-table">
+                        <thead id="weekly-thead"></thead>
+                        <tbody id="weekly-tbody"></tbody>
+                    </table>
+                </div>
+                
+                <!-- 월간 뷰 -->
+                <div class="timeline-wrapper" id="view-container-monthly" style="display: none;">
+                    <div class="monthly-calendar">
+                        <div class="monthly-header">
+                            <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+                        </div>
+                        <div class="monthly-grid" id="monthly-grid"></div>
+                    </div>
+                </div>
+
+                <!-- 급여 대장 뷰 -->
+                <div class="timeline-wrapper" id="view-container-salary" style="display: none; padding: 1.5rem;">
+                    <!-- 직원 관리 (급여 대장 내부로 이동) -->
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="color: white; margin: 0;">근무자 관리 (직원 추가 및 삭제)</h3>
+                            <label style="font-size: 0.85rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0;">
+                                <input type="checkbox" id="show-resigned-cb"> 퇴사자 포함 보기
+                            </label>
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div class="form-group" style="flex: 1; margin: 0;">
+                                <label>이름</label>
+                                <input type="text" id="emp-name" placeholder="이름을 입력하세요" autocomplete="off">
+                            </div>
+                            <div class="form-group" style="flex: 1; margin: 0;">
+                                <label>시급 (원)</label>
+                                <input type="number" id="emp-wage" placeholder="기본 10030" value="10030">
+                            </div>
+                            <button id="add-emp-btn" class="btn primary" style="height: 42px; padding: 0 1.5rem;">추가</button>
+                        </div>
+                        <ul id="employee-list" class="employee-list mt-2" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem; padding: 0;">
+                            <!-- 근무자 리스트 렌더링 -->
+                        </ul>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="color: white; margin: 0;">이번 달 급여 예상 내역</h3>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; margin-top: 0.2rem;">※ 근로기준법 적용 (휴게시간 자동차감, 주 15시간 이상 주휴수당 포함)</p>
+                        </div>
+                        <div>
+                            <button id="export-excel-btn" class="btn accent btn-sm" style="margin-right: 0.5rem;">엑셀 다운로드 📥</button>
+                            <button id="open-change-pw-btn" class="btn outline-light btn-sm">비밀번호 변경</button>
+                        </div>
+                    </div>
+                    <table class="weekly-table salary-table">
+                        <thead>
+                            <tr>
+                                <th>근무자 (시급)</th>
+                                <th>기본 근무시간</th>
+                                <th>휴게시간 공제</th>
+                                <th>순 근무시간</th>
+                                <th>주휴수당</th>
+                                <th>예상 총 월급</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salary-tbody">
+                            <!-- 급여 렌더링 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 비밀번호 확인 모달 -->
+    <div id="password-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-panel">
+            <h3>🔒 사장님 전용 (급여 대장)</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">비밀번호를 입력해 주세요.</p>
+            <input type="password" id="salary-password-input" placeholder="비밀번호 4자리" maxlength="4" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.2rem; padding: 0.8rem;">
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button id="cancel-password-btn" class="btn outline-light w-full">취소</button>
+                <button id="confirm-password-btn" class="btn primary w-full">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비밀번호 변경 모달 -->
+    <div id="change-password-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-panel">
+            <h3>🔑 비밀번호 변경</h3>
+            <input type="password" id="current-pw-input" placeholder="현재 비밀번호" maxlength="4" style="margin-top: 1rem; text-align: center; letter-spacing: 0.5rem; font-size: 1.1rem; padding: 0.6rem;">
+            <input type="password" id="new-pw-input" placeholder="새 비밀번호 (4자리)" maxlength="4" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.1rem; padding: 0.6rem;">
+            <input type="password" id="confirm-new-pw-input" placeholder="새 비밀번호 확인" maxlength="4" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.1rem; padding: 0.6rem;">
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button id="cancel-change-pw-btn" class="btn outline-light w-full">취소</button>
+                <button id="confirm-change-pw-btn" class="btn primary w-full">변경 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 급여 명세서 모달 -->
+    <div id="payslip-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 600px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 id="payslip-title" style="margin: 0;">급여 명세서</h3>
+                <button id="close-payslip-btn" class="btn outline-light btn-sm">닫기</button>
+            </div>
+            
+            <div style="max-height: 55vh; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.5rem; overflow-x: hidden;">
+                <h4 style="margin-bottom: 0.5rem; margin-top: 0; color: var(--primary);">일별 근무 내역</h4>
+                <table class="weekly-table" style="font-size: 0.85rem; margin-bottom: 1.5rem; min-width: unset;">
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>예정 시간</th>
+                            <th>출퇴근 기록</th>
+                            <th>일급</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payslip-daily-tbody">
+                        <!-- 일별 내역 렌더링 -->
+                    </tbody>
+                </table>
+
+                <h4 style="margin-bottom: 0.5rem; color: var(--accent);">주휴수당 발생 내역</h4>
+                <table class="weekly-table" style="font-size: 0.85rem; min-width: unset;">
+                    <thead>
+                        <tr>
+                            <th>주차</th>
+                            <th>총 근무 시간</th>
+                            <th>조건 충족</th>
+                            <th>주휴수당</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payslip-weekly-tbody">
+                        <!-- 주휴수당 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text-muted); font-size: 0.9rem;">총 예상 급여</span>
+                <strong id="payslip-total-amount" style="color: white; font-size: 1.5rem; font-weight: 700;">0원</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 근무자 수정 모달 -->
+    <div id="edit-emp-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 300px;">
+            <h3 style="margin-top: 0;">근무자 정보 수정</h3>
+            <input type="text" id="edit-emp-name" placeholder="이름" style="margin-top: 1rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            <input type="number" id="edit-emp-wage" placeholder="시급" style="margin-top: 0.5rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            
+            <p style="margin-top: 1rem; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">색상 지정</p>
+            <div id="edit-emp-colors" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                <!-- 색상 스와치는 JS에서 주입 -->
+            </div>
+            
+            <button id="toggle-resign-emp-btn" class="btn outline-danger w-full" style="margin-bottom: 1rem;">퇴사 처리</button>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="cancel-edit-emp-btn" class="btn outline-light w-full">취소</button>
+                <button id="confirm-edit-emp-btn" class="btn primary w-full">저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase Compat Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <!-- SheetJS for Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

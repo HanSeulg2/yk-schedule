@@ -1,0 +1,12 @@
+# Firebase
+.firebase/
+firebase-debug.log*
+
+# Mac
+.DS_Store
+
+# Node (just in case)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

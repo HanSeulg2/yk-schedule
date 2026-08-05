@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>엑셀 데이터 마이그레이션 도구</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; background: #1e1e2f; color: #fff; }
+        .box { padding: 2rem; background: rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 2rem; }
+        pre { background: #000; padding: 1rem; border-radius: 8px; overflow-x: auto; color: #0f0; }
+        button { padding: 10px 20px; font-size: 1rem; background: #6366f1; border: none; border-radius: 6px; color: #fff; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h2>📊 7월 스케줄 자동 복구 도구</h2>
+        <p>E드라이브(E:\yk)에 있는 엑셀 파일들을 <strong>모두 드래그해서 한꺼번에 선택</strong>해 주세요.</p>
+        <input type="file" id="file-input" multiple accept=".xlsx" style="font-size: 1.1rem; margin-bottom: 1rem;">
+    </div>
+
+    <div id="result-box" class="box" style="display: none;">
+        <h3>분석 현황</h3>
+        <pre id="output"></pre>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        let parsedEmployees = [];
+        let parsedSchedules = [];
+
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const files = e.target.files;
+            if(files.length === 0) return;
+            
+            document.getElementById('result-box').style.display = 'block';
+            const output = document.getElementById('output');
+            output.textContent = '데이터 분석 중...';
+            
+            parsedEmployees = [];
+            parsedSchedules = [];
+            let processed = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // 1. 직원 정보 및 시급 (첫 번째 시트)
+                    const sheet1 = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows1 = XLSX.utils.sheet_to_json(sheet1, {header: 1, raw: false});
+                    
+                    let empName = "";
+                    let hourlyWage = 10030;
+                    
+                    for(let r=0; r<rows1.length; r++) {
+                        const row = rows1[r];
+                        if(!row) continue;
+                        for(let c=0; c<row.length; c++) {
+                            const cell = String(row[c] || '').trim();
+                            if(cell === "직원명" && row[c+1]) empName = row[c+1];
+                            if(cell === "적용 시급" && row[c+1]) {
+                                hourlyWage = parseInt(String(row[c+1]).replace(/[^0-9]/g, '')) || 10030;
+                            }
+                        }
+                    }
+
+                    if(!empName) empName = file.name.split('_').pop().replace('.xlsx', '');
+                    const empId = 'emp_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+                    const colors = [['#ef4444', '#b91c1c'], ['#f97316', '#c2410c'], ['#10b981', '#047857'], ['#3b82f6', '#1d4ed8'], ['#ec4899', '#be185d']];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    parsedEmployees.push({
+                        id: empId,
+                        name: empName,
+                        hourlyWage: hourlyWage,
+                        color1: randomColor[0],
+                        color2: randomColor[1]
+                    });
+
+                    // 2. 스케줄 정보 (마지막 시트)
+                    const lastSheetName = workbook.SheetNames[workbook.SheetNames.length - 1];
+                    const sheet2 = workbook.Sheets[lastSheetName];
+                    const rows2 = XLSX.utils.sheet_to_json(sheet2, {header: 1, raw: false});
+                    
+                    let dateCol = 0, startCol = 2, endCol = 3; // 기본값: 7월 시트 구조 기반
+                    let headerRowIndex = 0;
+
+                    for(let r = headerRowIndex + 1; r < rows2.length; r++) {
+                        const row = rows2[r];
+                        if(!row || !row[dateCol]) continue;
+                        
+                        let rawDate = String(row[dateCol]).trim();
+                        let rawStart = String(row[startCol] || '').trim();
+                        let rawEnd = String(row[endCol] || '').trim();
+
+                        if(rawDate === "합계" || !rawStart || !rawEnd) continue;
+
+                        // 날짜 파싱 (예: "7/4")
+                        let dateStr = "";
+                        const dateMatch = rawDate.match(/(\d{1,2})[-\/\.]\s*(\d{1,2})/);
+                        if(dateMatch) {
+                            const month = dateMatch[1];
+                            const day = dateMatch[2];
+                            // 7월 데이터만 필터링!
+                            if (month === "7" || month === "07") {
+                                dateStr = `2026-07-${day.padStart(2,'0')}`;
+                            }
+                        }
+
+                        if(dateStr) {
+                            const parseTime = (t) => {
+                                const m = t.match(/(\d{1,2})[:\.](\d{2})/);
+                                if(m) return `${m[1].padStart(2,'0')}:${m[2]}`;
+                                return null;
+                            };
+                            
+                            const startStr = parseTime(rawStart);
+                            const endStr = parseTime(rawEnd);
+
+                            if(startStr && endStr) {
+                                parsedSchedules.push({
+                                    id: 'sched_' + Date.now() + '_' + Math.floor(Math.random()*100000),
+                                    empId: empId,
+                                    empName: empName,
+                                    date: dateStr,
+                                    start: startStr,
+                                    end: endStr,
+                                    color1: randomColor[0],
+                                    color2: randomColor[1]
+                                });
+                            }
+                        }
+                    }
+                    
+                    processed++;
+                    if(processed === files.length) {
+                        output.innerHTML = `✅ 분석 완료!\n총 ${parsedEmployees.length}명의 직원 정보와 ${parsedSchedules.length}개의 '7월 스케줄'을 성공적으로 찾았습니다.\n\n<button id="do-import-btn">파이어베이스에 데이터 밀어넣기 🚀</button>`;
+                        
+                        document.getElementById('do-import-btn').addEventListener('click', async () => {
+                            try {
+                                document.getElementById('do-import-btn').textContent = "저장 중...";
+                                for(const emp of parsedEmployees) {
+                                    await db.collection('employees').doc(emp.id).set(emp);
+                                }
+                                for(const sc of parsedSchedules) {
+                                    await db.collection('schedules').doc(sc.id).set(sc);
+                                }
+                                alert('7월 스케줄 복구 완료!! 원래 앱(index.html)을 새로고침해서 7월 달력을 확인해 보세요!');
+                            } catch(e) {
+                                alert('에러 발생: ' + e.message);
+                            }
+                        });
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (emp.isResigned) li.classList.add('resigned-emp');
             
             li.style.setProperty('--item-color', emp.color1);
-            li.innerHTML = `<span>${emp.name}${emp.isResigned ? ' <small>(퇴사)</small>' : ''}</span><button class="btn-delete-emp" data-id="${emp.id}">&times;</button>`;
+            li.innerHTML = `<span style="display: flex; align-items: center;">${emp.name}${emp.isResigned ? '<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem; font-weight: bold;">퇴사</span>' : ''}</span><button class="btn-delete-emp" data-id="${emp.id}">&times;</button>`;
             
             li.addEventListener('click', (e) => {
                 if(e.target.classList.contains('btn-delete-emp')) return;
@@ -924,9 +924,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const tr = document.createElement('tr');
             tr.style.cursor = 'pointer';
+            if(emp.isResigned) tr.style.opacity = '0.5';
             tr.innerHTML = `
                 <td class="emp-name-col" style="border-left: 4px solid ${emp.color1}">
-                    <strong>${emp.name}</strong><br>
+                    <strong style="display: flex; align-items: center;">${emp.name}${emp.isResigned ? '<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">퇴사</span>' : ''}</strong><br>
                     <span style="font-size:0.8rem; color:var(--text-muted)">${wage.toLocaleString()}원/시</span>
                 </td>
                 <td>${totalGross.toFixed(1)}시간</td>

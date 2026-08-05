@@ -895,6 +895,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         employees.forEach(emp => {
             const empScheds = monthScheds.filter(s => s.empId === emp.id).sort((a,b) => a.date.localeCompare(b.date));
+            
+            // 퇴사자이면서 이번 달에 스케줄(근무 기록)이 하나도 없다면 급여 대장에 표시하지 않음
+            if (emp.isResigned && empScheds.length === 0) return;
+
             const wage = emp.hourlyWage || 10030;
             
             let totalGross = 0;

@@ -191,6 +191,11 @@ select {
     padding-right: 2.5rem;
 }
 
+select option {
+    background-color: #1e1e2f; /* Solid dark background for dropdown items */
+    color: white;
+}
+
 input:focus, select:focus {
     outline: none;
     border-color: var(--primary);

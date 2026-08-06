@@ -1232,7 +1232,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         passwordModal.style.display = 'flex';
                     });
                 });
-                item.addEventListener('dblclick', () => {
+                // Handle PC double click
+                item.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
                     if (window.innerWidth <= 768) {
                         openMobileDailyModal(dateStr);
                     } else {
@@ -1240,6 +1242,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         passwordTargetAction = 'edit-schedule';
                         passwordModal.style.display = 'flex';
                     }
+                });
+
+                // Handle Mobile double tap
+                let lastTap = 0;
+                item.addEventListener('touchend', (e) => {
+                    const currentTime = new Date().getTime();
+                    const tapLength = currentTime - lastTap;
+                    if (tapLength < 500 && tapLength > 0) {
+                        // It's a double tap
+                        e.preventDefault();
+                        if (window.innerWidth <= 768) {
+                            openMobileDailyModal(dateStr);
+                        } else {
+                            pendingScheduleId = sched.id;
+                            passwordTargetAction = 'edit-schedule';
+                            passwordModal.style.display = 'flex';
+                        }
+                    }
+                    lastTap = currentTime;
                 });
                 cell.appendChild(item);
             });

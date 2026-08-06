@@ -1048,7 +1048,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const dailySchedules = schedules.filter(s => s.date === dateStr);
         let hasSchedules = false;
 
-        const sortedEmployees = [...employees].sort((a, b) => {
+        const activeEmployeesForDay = employees.filter(emp => {
+            const hasScheds = dailySchedules.some(s => s.empId === emp.id);
+            return !(emp.isResigned && !hasScheds);
+        });
+
+        const sortedEmployees = [...activeEmployeesForDay].sort((a, b) => {
             const aScheds = dailySchedules.filter(s => s.empId === a.id);
             const bScheds = dailySchedules.filter(s => s.empId === b.id);
             if (aScheds.length > 0 && bScheds.length === 0) return -1;
@@ -1142,7 +1147,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const weekDateStrs = weekDates.map(d => formatDateString(d));
         const weeklySchedules = schedules.filter(s => weekDateStrs.includes(s.date));
 
-        const sortedEmployees = [...employees].sort((a, b) => {
+        const activeEmployeesForWeek = employees.filter(emp => {
+            const hasScheds = weeklySchedules.some(s => s.empId === emp.id);
+            return !(emp.isResigned && !hasScheds);
+        });
+
+        const sortedEmployees = [...activeEmployeesForWeek].sort((a, b) => {
             const aScheds = weeklySchedules.filter(s => s.empId === a.id);
             const bScheds = weeklySchedules.filter(s => s.empId === b.id);
             if (aScheds.length > 0 && bScheds.length === 0) return -1;

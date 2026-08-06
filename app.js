@@ -80,6 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const monthlyGrid = document.getElementById('monthly-grid');
     const salaryTbody = document.getElementById('salary-tbody');
 
+    // Modal Elements
+    const mobileDailyModal = document.getElementById('mobile-daily-detail-modal');
+    const mobileDailyTitle = document.getElementById('mobile-daily-title');
+    const mobileDailyList = document.getElementById('mobile-daily-list');
+    const closeMobileDailyBtn = document.getElementById('close-mobile-daily-btn');
+
     // DOM Elements - Modal
     const passwordModal = document.getElementById('password-modal');
     const salaryPasswordInput = document.getElementById('salary-password-input');
@@ -119,6 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editSchedDateInput = document.getElementById('edit-sched-date');
     const editSchedWeekdayWrapper = document.getElementById('edit-sched-weekday-wrapper');
     const editSchedWeekdaySelect = document.getElementById('edit-sched-weekday');
+    const editSchedEmpName = document.getElementById('edit-sched-emp-name');
+    const editSchedEmpColor = document.getElementById('edit-sched-emp-color');
     const editSchedStartInput = document.getElementById('edit-sched-start');
     const editSchedEndInput = document.getElementById('edit-sched-end');
     const cancelEditSchedBtn = document.getElementById('cancel-edit-sched-btn');
@@ -260,6 +268,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (closeMobileDailyBtn) {
+        closeMobileDailyBtn.addEventListener('click', () => {
+            mobileDailyModal.style.display = 'none';
+        });
+    }
+
+    // Initialize Selects Listeners
     // Modal Event Listeners
     cancelPasswordBtn.addEventListener('click', () => {
         passwordModal.style.display = 'none';
@@ -292,6 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (pendingScheduleId) {
                     const sched = schedules.find(s => s.id === pendingScheduleId);
                     if (sched) {
+                        editSchedEmpName.textContent = sched.empName;
+                        editSchedEmpColor.style.background = sched.color1;
+                        
                         editSchedStartInput.value = sched.start;
                         editSchedEndInput.value = sched.end;
                         
@@ -1215,9 +1233,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
                 item.addEventListener('dblclick', () => {
-                    pendingScheduleId = sched.id;
-                    passwordTargetAction = 'edit-schedule';
-                    passwordModal.style.display = 'flex';
+                    if (window.innerWidth <= 768) {
+                        openMobileDailyModal(dateStr);
+                    } else {
+                        pendingScheduleId = sched.id;
+                        passwordTargetAction = 'edit-schedule';
+                        passwordModal.style.display = 'flex';
+                    }
                 });
                 cell.appendChild(item);
             });
@@ -1626,6 +1648,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Modal and Excel Logic
+    function openMobileDailyModal(dateStr) {
+        mobileDailyTitle.textContent = `${dateStr} 스케줄`;
+        mobileDailyList.innerHTML = '';
+        
+        const dayScheds = schedules.filter(s => s.date === dateStr).sort((a,b) => a.start.localeCompare(b.start));
+        
+        if (dayScheds.length === 0) {
+            mobileDailyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">일정이 없습니다.</div>';
+        } else {
+            dayScheds.forEach(sched => {
+                const div = document.createElement('div');
+                div.style.cssText = `
+                    background: linear-gradient(135deg, ${sched.color1}, ${sched.color2});
+                    padding: 0.8rem 1rem;
+                    border-radius: 8px;
+                    color: white;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-weight: 500;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                `;
+                div.innerHTML = `
+                    <span>${sched.empName}</span>
+                    <span style="font-family: var(--font-mono);">${sched.start} ~ ${sched.end}</span>
+                `;
+                mobileDailyList.appendChild(div);
+            });
+        }
+        
+        mobileDailyModal.style.display = 'flex';
+    }
+
     function openPayslipModal(data) {
         payslipTitle.textContent = `${data.emp.name} 님의 급여 명세서`;
         

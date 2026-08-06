@@ -367,10 +367,28 @@
         </div>
     </div>
 
+    <!-- 모바일 일간 상세 모달 -->
+    <div id="mobile-daily-detail-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 320px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 id="mobile-daily-title" style="margin: 0;">스케줄 상세</h3>
+                <button id="close-mobile-daily-btn" class="btn outline-light btn-sm">닫기</button>
+            </div>
+            <div id="mobile-daily-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 50vh; overflow-y: auto;">
+                <!-- 일간 스케줄 리스트 -->
+            </div>
+        </div>
+    </div>
+
     <!-- 스케줄 수정 모달 -->
     <div id="edit-schedule-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content glass-panel" style="max-width: 320px;">
             <h3 style="margin-top: 0;">스케줄 수정</h3>
+            
+            <div id="edit-sched-emp-info" style="margin-top: 1rem; padding: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px; display: flex; align-items: center; gap: 0.8rem;">
+                <div id="edit-sched-emp-color" style="width: 14px; height: 14px; border-radius: 50%; background: #ccc;"></div>
+                <span id="edit-sched-emp-name" style="font-weight: 600; font-size: 1.05rem;"></span>
+            </div>
             
             <div id="edit-sched-date-wrapper" style="display: none;">
                 <input type="date" id="edit-sched-date" style="margin-top: 1rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">

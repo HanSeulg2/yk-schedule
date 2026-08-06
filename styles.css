@@ -985,4 +985,8 @@ input:focus, select:focus {
         width: 100%;
         justify-content: space-between;
     }
+    
+    #view-salary-btn, #clear-schedules-btn {
+        display: none !important;
+    }
 }

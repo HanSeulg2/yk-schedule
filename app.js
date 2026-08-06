@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingScheduleId = null;
     let presets = [];
     
+    let dayOfWeekChartInstance = null;
+    
     const TIMELINE_START = 9;
     const TIMELINE_END = 24; // 09:00 ~ 24:00 (midnight)
     const TIMELINE_HOURS = TIMELINE_END - TIMELINE_START;
@@ -1561,6 +1563,59 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         }
+                    }
+                }
+            });
+
+            // Day of Week Chart (요일별 인건비 지출 평균)
+            if (dayOfWeekChartInstance) dayOfWeekChartInstance.destroy();
+            const dowCtx = document.getElementById('dayOfWeekChart').getContext('2d');
+            
+            const dowTotals = [0,0,0,0,0,0,0]; // 일,월,화,수,목,금,토
+            const dowCounts = [0,0,0,0,0,0,0];
+            
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for(let i=1; i<=daysInMonth; i++) {
+                const d = new Date(year, month, i);
+                dowCounts[d.getDay()]++;
+            }
+            
+            monthScheds.forEach(s => {
+                const emp = employees.find(e => e.id === s.empId);
+                if(emp && !emp.excludeSalary) {
+                    const hrs = calculateDuration(s.start, s.end).net;
+                    const wage = parseInt(emp.wage) || defaultWage;
+                    const dateObj = new Date(s.date);
+                    dowTotals[dateObj.getDay()] += (hrs * wage);
+                }
+            });
+            
+            const dowAverages = dowTotals.map((total, idx) => dowCounts[idx] > 0 ? Math.round(total / dowCounts[idx]) : 0);
+            
+            dayOfWeekChartInstance = new Chart(dowCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['일', '월', '화', '수', '목', '금', '토'],
+                    datasets: [{
+                        label: '평균 지출액(원)',
+                        data: dowAverages,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255,255,255,0.1)' }, 
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.7)',
+                                callback: function(value) { return (value / 10000).toLocaleString() + '만'; }
+                            } 
+                        },
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.7)' } }
                     }
                 }
             });

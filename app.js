@@ -23,6 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let defaultWage = 10320;
     let currentSalaryData = []; // For Excel and Payslips
     let passwordTargetAction = 'salary';
+    let pendingScheduleId = null;
+    let presets = [];
+    
+    const TIMELINE_START = 9;
+    const TIMELINE_END = 24; // 09:00 ~ 24:00 (midnight)
+    const TIMELINE_HOURS = TIMELINE_END - TIMELINE_START;
 
     // DOM Elements - Controls
     const empNameInput = document.getElementById('emp-name');
@@ -40,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekdayCheckboxes = document.querySelectorAll('.weekday-selector input[type="checkbox"]');
     
     const scheduleEmpSelect = document.getElementById('schedule-emp');
+    const schedulePreset = document.getElementById('schedule-preset');
     const startTimeInput = document.getElementById('start-time');
     const endTimeInput = document.getElementById('end-time');
     const addScheduleBtn = document.getElementById('add-schedule-btn');
@@ -103,6 +110,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditEmpBtn = document.getElementById('cancel-edit-emp-btn');
     const confirmEditEmpBtn = document.getElementById('confirm-edit-emp-btn');
     const showResignedCb = document.getElementById('show-resigned-cb');
+    
+    // DOM Elements - Edit Schedule Modal
+    const editScheduleModal = document.getElementById('edit-schedule-modal');
+    const editSchedDateWrapper = document.getElementById('edit-sched-date-wrapper');
+    const editSchedDateInput = document.getElementById('edit-sched-date');
+    const editSchedWeekdayWrapper = document.getElementById('edit-sched-weekday-wrapper');
+    const editSchedWeekdaySelect = document.getElementById('edit-sched-weekday');
+    const editSchedStartInput = document.getElementById('edit-sched-start');
+    const editSchedEndInput = document.getElementById('edit-sched-end');
+    const cancelEditSchedBtn = document.getElementById('cancel-edit-sched-btn');
+    const confirmEditSchedBtn = document.getElementById('confirm-edit-sched-btn');
+    const deleteEditSchedBtn = document.getElementById('delete-edit-sched-btn');
+    
+    // DOM Elements - Preset Manage
+    const managePresetsBtn = document.getElementById('manage-presets-btn');
+    const presetManageModal = document.getElementById('preset-manage-modal');
+    const newPresetName = document.getElementById('new-preset-name');
+    const newPresetStart = document.getElementById('new-preset-start');
+    const newPresetEnd = document.getElementById('new-preset-end');
+    const addPresetBtn = document.getElementById('add-preset-btn');
+    const updatePresetBtn = document.getElementById('update-preset-btn');
+    const cancelEditPresetBtn = document.getElementById('cancel-edit-preset-btn');
+    const presetListEl = document.getElementById('preset-list');
+    const closePresetManageBtn = document.getElementById('close-preset-manage-btn');
+    
+    // DOM Elements - Confirm Modal
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmModalMessage = document.getElementById('confirm-modal-message');
+    const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
+    const okConfirmBtn = document.getElementById('ok-confirm-btn');
+    let currentConfirmCallback = null;
+    let editingPresetId = null;
+    
+    function showConfirm(msg, callback) {
+        confirmModalMessage.textContent = msg;
+        currentConfirmCallback = callback;
+        confirmModal.style.display = 'flex';
+    }
+
+    if (cancelConfirmBtn) {
+        cancelConfirmBtn.addEventListener('click', () => {
+            confirmModal.style.display = 'none';
+            currentConfirmCallback = null;
+        });
+    }
+
+    if (okConfirmBtn) {
+        okConfirmBtn.addEventListener('click', () => {
+            confirmModal.style.display = 'none';
+            if (currentConfirmCallback) {
+                currentConfirmCallback();
+                currentConfirmCallback = null;
+            }
+        });
+    }
+    
     let editingEmpId = null;
     let editingEmpSelectedColor = null;
     let editingEmpIsResigned = false;
@@ -136,6 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('schedules').onSnapshot((snapshot) => {
             schedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateBoard();
+        });
+        
+        db.collection('presets').orderBy('createdAt').onSnapshot((snapshot) => {
+            presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderPresetDropdown();
+            renderPresetManageList();
         });
 
         db.collection('settings').doc('admin').onSnapshot((doc) => {
@@ -208,8 +277,48 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (passwordTargetAction === 'salary') {
                 setViewMode('salary');
+            } else if (passwordTargetAction === 'manage-presets') {
+                presetManageModal.style.display = 'flex';
             } else if (passwordTargetAction === 'clear') {
                 executeClearSchedules();
+            } else if (passwordTargetAction === 'delete-schedule') {
+                if (pendingScheduleId) {
+                    removeSchedule(pendingScheduleId);
+                    pendingScheduleId = null;
+                }
+            } else if (passwordTargetAction === 'edit-schedule') {
+                if (pendingScheduleId) {
+                    const sched = schedules.find(s => s.id === pendingScheduleId);
+                    if (sched) {
+                        editSchedStartInput.value = sched.start;
+                        editSchedEndInput.value = sched.end;
+                        
+                        if (viewMode === 'daily') {
+                            editSchedDateWrapper.style.display = 'none';
+                            editSchedWeekdayWrapper.style.display = 'none';
+                        } else if (viewMode === 'weekly') {
+                            editSchedDateWrapper.style.display = 'none';
+                            editSchedWeekdayWrapper.style.display = 'block';
+                            
+                            editSchedWeekdaySelect.innerHTML = '';
+                            const weekDates = getWeekDates(currentDate);
+                            weekDates.forEach(d => {
+                                const dStr = formatDateString(d);
+                                const option = document.createElement('option');
+                                option.value = dStr;
+                                option.textContent = `${dStr} (${getDayName(d)})`;
+                                if (dStr === sched.date) option.selected = true;
+                                editSchedWeekdaySelect.appendChild(option);
+                            });
+                        } else if (viewMode === 'monthly') {
+                            editSchedDateWrapper.style.display = 'block';
+                            editSchedWeekdayWrapper.style.display = 'none';
+                            editSchedDateInput.value = sched.date;
+                        }
+
+                        editScheduleModal.style.display = 'flex';
+                    }
+                }
             }
         } else {
             alert('비밀번호가 일치하지 않습니다.');
@@ -277,6 +386,148 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addScheduleBtn.addEventListener('click', addSchedule);
     
+    if (managePresetsBtn) {
+        managePresetsBtn.addEventListener('click', () => {
+            presetManageModal.style.display = 'flex';
+        });
+    }
+    
+    if (closePresetManageBtn) {
+        closePresetManageBtn.addEventListener('click', () => {
+            presetManageModal.style.display = 'none';
+        });
+    }
+    
+    if (addPresetBtn) {
+        addPresetBtn.addEventListener('click', async () => {
+            const name = newPresetName.value.trim();
+            const start = newPresetStart.value;
+            const end = newPresetEnd.value;
+            
+            if (!name || !start || !end) {
+                alert('프리셋 이름과 시간을 모두 입력해주세요.');
+                return;
+            }
+            
+            try {
+                await db.collection('presets').add({
+                    name, start, end, createdAt: new Date()
+                });
+                newPresetName.value = '';
+            } catch (e) {
+                console.error('Error adding preset', e);
+            }
+        });
+    }
+
+    if (updatePresetBtn) {
+        updatePresetBtn.addEventListener('click', async () => {
+            if (!editingPresetId) return;
+            const name = newPresetName.value.trim();
+            const start = newPresetStart.value;
+            const end = newPresetEnd.value;
+            
+            if (!name || !start || !end) {
+                alert('프리셋 이름과 시간을 모두 입력해주세요.');
+                return;
+            }
+            
+            try {
+                await db.collection('presets').doc(editingPresetId).update({
+                    name, start, end
+                });
+                resetPresetForm();
+            } catch (e) {
+                console.error('Error updating preset', e);
+            }
+        });
+    }
+
+    if (cancelEditPresetBtn) {
+        cancelEditPresetBtn.addEventListener('click', () => {
+            resetPresetForm();
+        });
+    }
+
+    function resetPresetForm() {
+        editingPresetId = null;
+        newPresetName.value = '';
+        newPresetStart.value = '09:00';
+        newPresetEnd.value = '14:00';
+        addPresetBtn.style.display = 'block';
+        updatePresetBtn.style.display = 'none';
+        cancelEditPresetBtn.style.display = 'none';
+    }
+    
+    function renderPresetDropdown() {
+        if (!schedulePreset) return;
+        const currentVal = schedulePreset.value;
+        schedulePreset.innerHTML = '<option value="">직접 입력</option>';
+        presets.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            schedulePreset.appendChild(opt);
+        });
+        if (currentVal && presets.some(p => p.id === currentVal)) {
+            schedulePreset.value = currentVal;
+        }
+    }
+    
+    function renderPresetManageList() {
+        if (!presetListEl) return;
+        presetListEl.innerHTML = '';
+        presets.forEach(p => {
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.justifyContent = 'space-between';
+            li.style.alignItems = 'center';
+            li.style.padding = '0.5rem';
+            li.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+            li.innerHTML = `
+                <span style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <strong>${p.name}</strong> <span style="color:var(--text-muted); font-size:0.85rem; margin-left:0.5rem;">${p.start} ~ ${p.end}</span>
+                </span>
+                <div style="display: flex; gap: 0.2rem;">
+                    <button class="edit-preset-btn btn text" style="color:var(--text-muted); padding:0.2rem 0.5rem; font-size: 0.9rem;" data-id="${p.id}">✏️</button>
+                    <button class="delete-preset-btn btn text" style="color:var(--danger); padding:0.2rem 0.5rem; font-size: 1.1rem;" data-id="${p.id}">&times;</button>
+                </div>
+            `;
+            li.querySelector('.edit-preset-btn').addEventListener('click', (e) => {
+                const pid = e.target.dataset.id;
+                const targetPreset = presets.find(pr => pr.id === pid);
+                if (targetPreset) {
+                    editingPresetId = pid;
+                    newPresetName.value = targetPreset.name;
+                    newPresetStart.value = targetPreset.start;
+                    newPresetEnd.value = targetPreset.end;
+                    
+                    addPresetBtn.style.display = 'none';
+                    updatePresetBtn.style.display = 'block';
+                    cancelEditPresetBtn.style.display = 'block';
+                }
+            });
+            li.querySelector('.delete-preset-btn').addEventListener('click', (e) => {
+                const pid = e.target.dataset.id;
+                showConfirm('이 프리셋을 삭제하시겠습니까?', async () => {
+                    await db.collection('presets').doc(pid).delete();
+                });
+            });
+            presetListEl.appendChild(li);
+        });
+    }
+    
+    if (schedulePreset) {
+        schedulePreset.addEventListener('change', (e) => {
+            const val = e.target.value;
+            const p = presets.find(pr => pr.id === val);
+            if (p) {
+                startTimeInput.value = p.start;
+                endTimeInput.value = p.end;
+            }
+        });
+    }
+    
     prevDateBtn.addEventListener('click', () => changeDate(-1));
     nextDateBtn.addEventListener('click', () => changeDate(1));
     todayBtn.addEventListener('click', () => {
@@ -299,6 +550,57 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordModal.style.display = 'flex';
         salaryPasswordInput.focus();
     });
+
+    if (cancelEditSchedBtn) {
+        cancelEditSchedBtn.addEventListener('click', () => {
+            editScheduleModal.style.display = 'none';
+            pendingScheduleId = null;
+        });
+    }
+
+    if (deleteEditSchedBtn) {
+        deleteEditSchedBtn.addEventListener('click', () => {
+            showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                if (pendingScheduleId) {
+                    removeSchedule(pendingScheduleId);
+                    editScheduleModal.style.display = 'none';
+                    pendingScheduleId = null;
+                }
+            });
+        });
+    }
+
+    if (confirmEditSchedBtn) {
+        confirmEditSchedBtn.addEventListener('click', async () => {
+            const start = editSchedStartInput.value;
+            const end = editSchedEndInput.value;
+            
+            let newDate = null;
+            if (viewMode === 'weekly') {
+                newDate = editSchedWeekdaySelect.value;
+            } else if (viewMode === 'monthly') {
+                newDate = editSchedDateInput.value;
+            }
+            
+            if (!start || !end) { alert('시간을 입력해주세요.'); return; }
+            if (pendingScheduleId) {
+                try {
+                    confirmEditSchedBtn.textContent = '저장 중...';
+                    const updateData = { start, end };
+                    if (newDate) updateData.date = newDate;
+                    
+                    await db.collection('schedules').doc(pendingScheduleId).update(updateData);
+                    editScheduleModal.style.display = 'none';
+                    pendingScheduleId = null;
+                } catch (e) {
+                    console.error(e);
+                    alert('수정에 실패했습니다.');
+                } finally {
+                    confirmEditSchedBtn.textContent = '저장';
+                }
+            }
+        });
+    }
 
     async function executeClearSchedules() {
         let msg = '초기화하시겠습니까?';
@@ -708,12 +1010,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Renders ---
     function renderTimeHeader() {
         timeHeader.innerHTML = '';
-        for (let i = 0; i < 24; i++) {
+        for (let i = TIMELINE_START; i < TIMELINE_END; i++) {
             const slot = document.createElement('div');
             slot.className = 'time-slot';
-            slot.textContent = `${String(i).padStart(2, '0')}:00`;
+            slot.textContent = `${String(i % 24).padStart(2, '0')}:00`;
             timeHeader.appendChild(slot);
         }
+        timelineGrid.style.setProperty('--timeline-hours', TIMELINE_HOURS);
     }
 
     function renderTimeline(dateStr) {
@@ -749,16 +1052,15 @@ document.addEventListener('DOMContentLoaded', () => {
             empSchedules.forEach(sched => {
                 const sH = parseInt(sched.start.split(':')[0]);
                 const sM = parseInt(sched.start.split(':')[1]);
-                const eH = parseInt(sched.end.split(':')[0]);
+                let eH = parseInt(sched.end.split(':')[0]);
                 const eM = parseInt(sched.end.split(':')[1]);
                 
-                let spansMidnight = (eH < sH || (eH === sH && eM < sM));
-                if (spansMidnight) {
-                    lane.appendChild(createScheduleBlock(sched, sH, sM, 24, 0));
-                    lane.appendChild(createScheduleBlock(sched, 0, 0, eH, eM));
-                } else {
-                    lane.appendChild(createScheduleBlock(sched, sH, sM, eH, eM));
+                if (eH < sH || (eH === sH && eM < sM)) {
+                    eH += 24;
                 }
+                
+                const block = createScheduleBlock(sched, sH, sM, eH, eM);
+                if (block) lane.appendChild(block);
             });
             timelineGrid.appendChild(lane);
         });
@@ -769,17 +1071,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function createScheduleBlock(sched, sHour, sMin, eHour, eMin) {
-        const startDec = sHour + (sMin / 60);
-        const endDec = eHour + (eMin / 60);
+        let startDec = sHour + (sMin / 60);
+        let endDec = eHour + (eMin / 60);
+        
+        if (startDec < TIMELINE_START) startDec = TIMELINE_START;
+        if (endDec > TIMELINE_END) endDec = TIMELINE_END;
+        if (startDec >= endDec) return null;
+        
         const block = document.createElement('div');
         block.className = 'schedule-block';
-        block.style.left = `${(startDec / 24) * 100}%`;
-        block.style.width = `${((endDec - startDec) / 24) * 100}%`;
+        block.style.left = `${((startDec - TIMELINE_START) / TIMELINE_HOURS) * 100}%`;
+        block.style.width = `${((endDec - startDec) / TIMELINE_HOURS) * 100}%`;
         block.style.setProperty('--bg-color-1', sched.color1);
         block.style.setProperty('--bg-color-2', sched.color2);
         block.innerHTML = `<span>${sched.start}~${sched.end}</span><button class="delete-schedule" data-id="${sched.id}">&times;</button>`;
         block.querySelector('.delete-schedule').addEventListener('click', (e) => {
-            e.stopPropagation(); removeSchedule(e.target.dataset.id);
+            e.stopPropagation(); 
+            showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                pendingScheduleId = e.target.dataset.id;
+                passwordTargetAction = 'delete-schedule';
+                passwordModal.style.display = 'flex';
+            });
+        });
+        block.addEventListener('dblclick', () => {
+            pendingScheduleId = sched.id;
+            passwordTargetAction = 'edit-schedule';
+            passwordModal.style.display = 'flex';
         });
         return block;
     }
@@ -830,10 +1147,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.setProperty('--bg-color-1', sched.color1);
                     item.style.setProperty('--bg-color-2', sched.color2);
                     item.innerHTML = `${sched.start}~${sched.end}<button class="delete-weekly-btn" data-id="${sched.id}">&times;</button>`;
-                    item.addEventListener('click', () => {
-                        alert(`근무자: ${emp.name}\n시간: ${sched.start} ~ ${sched.end}`);
+                    item.querySelector('.delete-weekly-btn').addEventListener('click', (e) => {
+                        e.stopPropagation(); 
+                        showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                            pendingScheduleId = e.target.dataset.id;
+                            passwordTargetAction = 'delete-schedule';
+                            passwordModal.style.display = 'flex';
+                        });
                     });
-                    item.querySelector('.delete-weekly-btn').addEventListener('click', (e) => { e.stopPropagation(); removeSchedule(e.target.dataset.id); });
+                    item.addEventListener('dblclick', () => {
+                        pendingScheduleId = sched.id;
+                        passwordTargetAction = 'edit-schedule';
+                        passwordModal.style.display = 'flex';
+                    });
                     td.appendChild(item);
                 });
                 if(empDayScheds.length === 0) { td.style.color = 'var(--panel-border)'; td.textContent = '-'; }
@@ -878,11 +1204,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${sched.empName} (${sched.start}~${sched.end})
                     <button class="delete-monthly-btn" data-id="${sched.id}">&times;</button>
                 `;
-                item.addEventListener('click', () => {
-                    alert(`근무자: ${sched.empName}\n일자: ${dateStr}\n시간: ${sched.start} ~ ${sched.end}`);
-                });
                 item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
-                    e.stopPropagation(); removeSchedule(e.target.dataset.id);
+                    e.stopPropagation(); 
+                    showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                        pendingScheduleId = e.target.dataset.id;
+                        passwordTargetAction = 'delete-schedule';
+                        passwordModal.style.display = 'flex';
+                    });
+                });
+                item.addEventListener('dblclick', () => {
+                    pendingScheduleId = sched.id;
+                    passwordTargetAction = 'edit-schedule';
+                    passwordModal.style.display = 'flex';
                 });
                 cell.appendChild(item);
             });

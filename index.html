@@ -116,13 +116,22 @@
                                     <option value="" disabled selected>선택</option>
                                 </select>
                             </div>
+                            <div class="form-group" style="margin: 0; min-width: 150px;">
+                                <label style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>근무 시간 (프리셋)</span>
+                                    <button id="manage-presets-btn" class="btn" style="padding: 0; background: transparent; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="프리셋 관리">⚙️</button>
+                                </label>
+                                <select id="schedule-preset">
+                                    <option value="">직접 입력</option>
+                                </select>
+                            </div>
                             
                             <div class="time-inputs" style="margin: 0; display: flex; gap: 0.5rem;">
-                                <div class="form-group" style="margin: 0; min-width: 120px;">
+                                <div class="form-group" style="margin: 0; min-width: 100px;">
                                     <label>시작 시간</label>
                                     <input type="time" id="start-time" value="09:00" step="300">
                                 </div>
-                                <div class="form-group" style="margin: 0; min-width: 120px;">
+                                <div class="form-group" style="margin: 0; min-width: 100px;">
                                     <label>종료 시간</label>
                                     <input type="time" id="end-time" value="14:00" step="300">
                                 </div>
@@ -221,14 +230,58 @@
     </main>
 
     <!-- 비밀번호 확인 모달 -->
-    <div id="password-modal" class="modal-overlay" style="display: none;">
+    <div id="password-modal" class="modal-overlay" style="display: none; z-index: 999;">
         <div class="modal-content glass-panel">
             <h3>🔒 관리자 메뉴</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">비밀번호를 입력해 주세요.</p>
-            <input type="password" id="salary-password-input" placeholder="비밀번호 4자리" maxlength="4" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.2rem; padding: 0.8rem;">
+            <input type="password" id="salary-password-input" placeholder="비밀번호 4자리" maxlength="4" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.2rem; padding: 0.8rem; width: 100%; border-radius: 8px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                 <button id="cancel-password-btn" class="btn outline-light w-full">취소</button>
                 <button id="confirm-password-btn" class="btn primary w-full">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 근무 프리셋 관리 모달 -->
+    <div id="preset-manage-modal" class="modal-overlay" style="display: none; z-index: 1000;">
+        <div class="modal-content glass-panel" style="max-width: 400px; width: 100%;">
+            <h3 style="margin-top: 0;">근무 프리셋 관리</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">자주 쓰는 근무 시간을 등록하고 관리하세요.</p>
+            
+            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <input type="text" id="new-preset-name" placeholder="프리셋 이름 (예: 오전파트)" style="padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; width: 100%;">
+                    
+                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                        <input type="time" id="new-preset-start" value="09:00" style="flex: 1; padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                        <span style="display: flex; align-items: center;">~</span>
+                        <input type="time" id="new-preset-end" value="14:00" style="flex: 1; padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;" id="preset-form-actions">
+                        <button id="add-preset-btn" class="btn primary w-full">추가</button>
+                        <button id="update-preset-btn" class="btn primary w-full" style="display: none;">수정</button>
+                        <button id="cancel-edit-preset-btn" class="btn outline-light w-full" style="display: none;">취소</button>
+                    </div>
+                </div>
+            </div>
+
+            <ul id="preset-list" style="list-style: none; padding: 0; margin: 0 0 1rem 0; max-height: 200px; overflow-y: auto;">
+                <!-- 프리셋 렌더링 영역 -->
+            </ul>
+            
+            <button id="close-preset-manage-btn" class="btn outline-light w-full">닫기</button>
+        </div>
+    </div>
+
+    <!-- 공통 확인 모달 (예쁘게 만든 alert/confirm 대체용) -->
+    <div id="confirm-modal" class="modal-overlay" style="display: none; z-index: 1000;">
+        <div class="modal-content glass-panel" style="max-width: 320px; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+            <h3 id="confirm-modal-message" style="margin-top: 0; font-size: 1.1rem; font-weight: 500; line-height: 1.5; color: white;">해당 근무를 삭제하시겠습니까?</h3>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button id="cancel-confirm-btn" class="btn outline-light" style="flex: 1;">취소</button>
+                <button id="ok-confirm-btn" class="btn outline-danger" style="flex: 1; border-color: rgba(239,68,68,0.5); color: #fca5a5;">삭제</button>
             </div>
         </div>
     </div>
@@ -303,6 +356,30 @@
             <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: var(--text-muted); font-size: 0.9rem;">총 예상 급여</span>
                 <strong id="payslip-total-amount" style="color: white; font-size: 1.5rem; font-weight: 700;">0원</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스케줄 수정 모달 -->
+    <div id="edit-schedule-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 320px;">
+            <h3 style="margin-top: 0;">스케줄 수정</h3>
+            
+            <div id="edit-sched-date-wrapper" style="display: none;">
+                <input type="date" id="edit-sched-date" style="margin-top: 1rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            </div>
+            
+            <div id="edit-sched-weekday-wrapper" style="display: none;">
+                <select id="edit-sched-weekday" style="margin-top: 1rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+                </select>
+            </div>
+
+            <input type="time" id="edit-sched-start" style="margin-top: 1rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            <input type="time" id="edit-sched-end" style="margin-top: 0.5rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button id="delete-edit-sched-btn" class="btn outline-danger" style="flex: 0 0 auto; padding: 0 1rem;" title="삭제">🗑️</button>
+                <button id="cancel-edit-sched-btn" class="btn outline-light" style="flex: 1;">취소</button>
+                <button id="confirm-edit-sched-btn" class="btn primary" style="flex: 1;">저장</button>
             </div>
         </div>
     </div>

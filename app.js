@@ -28,6 +28,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let dayOfWeekChartInstance = null;
     
+    const defaultInventoryItems = [
+        { id: 'veg', name: '야채' },
+        { id: 'sauce', name: '소스' },
+        { id: 'frozen', name: '냉동제품' },
+        { id: 'poke-bowl', name: '포케 용기' },
+        { id: 'bento-box', name: '도시락 용기' },
+        { id: 'oil', name: '식용유' },
+        { id: 'bag-l', name: '배달 봉투 (대)' },
+        { id: 'bag-m', name: '배달 봉투 (중)' },
+        { id: 'bag-s', name: '배달 봉투 (소)' }
+    ];
+    let inventoryData = {};
+    let disposalData = {};
+    let inventoryCheckData = null;
+    
     const TIMELINE_START = 9;
     const TIMELINE_END = 24; // 09:00 ~ 24:00 (midnight)
     const TIMELINE_HOURS = TIMELINE_END - TIMELINE_START;
@@ -65,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewWeeklyBtn = document.getElementById('view-weekly-btn');
     const viewMonthlyBtn = document.getElementById('view-monthly-btn');
     const viewSalaryBtn = document.getElementById('view-salary-btn');
+    const viewInventoryBtn = document.getElementById('view-inventory-btn');
     const clearSchedulesBtn = document.getElementById('clear-schedules-btn');
     
     // DOM Elements - Views
@@ -72,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewContainerWeekly = document.getElementById('view-container-weekly');
     const viewContainerMonthly = document.getElementById('view-container-monthly');
     const viewContainerSalary = document.getElementById('view-container-salary');
+    const viewContainerInventory = document.getElementById('view-container-inventory');
+    const viewContainerDisposal = document.getElementById('view-container-disposal');
     
     const timeHeader = document.getElementById('time-header');
     const timelineGrid = document.getElementById('timeline-grid');
@@ -80,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const monthlyGrid = document.getElementById('monthly-grid');
     const adminMonthlyGrid = document.getElementById('admin-monthly-grid');
     const salaryTbody = document.getElementById('salary-tbody');
+    const inventoryTbody = document.getElementById('inventory-tbody');
 
     // Modal Elements
     const mobileDailyModal = document.getElementById('mobile-daily-detail-modal');
@@ -165,6 +184,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentConfirmCallback = null;
     let editingPresetId = null;
     
+    // DOM Elements - Disposal Amount Modal
+    const disposalModal = document.getElementById('disposal-amount-modal');
+    const disposalItemNameEl = document.getElementById('disposal-item-name');
+    const disposalCurrentQtyEl = document.getElementById('disposal-current-qty');
+    const disposalQtyInput = document.getElementById('disposal-qty-input');
+    const disposalMemoInput = document.getElementById('disposal-memo-input');
+    const closeDisposalModalBtn = document.getElementById('close-disposal-modal-btn');
+    const cancelDisposalBtn = document.getElementById('cancel-disposal-btn');
+    const confirmDisposalBtn = document.getElementById('confirm-disposal-btn');
+    let currentDisposalItem = null;
+    
     function showConfirm(msg, callback) {
         confirmModalMessage.textContent = msg;
         currentConfirmCallback = callback;
@@ -184,6 +214,74 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentConfirmCallback) {
                 currentConfirmCallback();
                 currentConfirmCallback = null;
+            }
+        });
+    }
+    
+    function closeDisposalModal() {
+        disposalModal.style.display = 'none';
+        currentDisposalItem = null;
+    }
+    
+    if (closeDisposalModalBtn) closeDisposalModalBtn.addEventListener('click', closeDisposalModal);
+    if (cancelDisposalBtn) cancelDisposalBtn.addEventListener('click', closeDisposalModal);
+    
+    if (confirmDisposalBtn) {
+        confirmDisposalBtn.addEventListener('click', async () => {
+            if (!currentDisposalItem) return;
+            const id = currentDisposalItem.id;
+            const data = inventoryData[id];
+            if (!data) return;
+            
+            const currentQty = currentDisposalItem.currentQty;
+            const disposalQty = parseInt(disposalQtyInput.value) || 0;
+            const memo = disposalMemoInput.value;
+            
+            if (disposalQty <= 0) {
+                alert('폐기할 수량을 1개 이상 입력해주세요.');
+                return;
+            }
+            if (disposalQty > currentQty) {
+                alert('현재 수량보다 많은 수량을 폐기할 수 없습니다.');
+                return;
+            }
+            
+            const disposalId = 'disp_' + Date.now();
+            const disposalPayload = {
+                id: disposalId,
+                itemId: id,
+                name: data.name,
+                quantity: disposalQty,
+                memo: memo,
+                archivedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            const newQty = currentQty - disposalQty;
+            const resetPayload = {
+                quantity: newQty,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // If new quantity is 0, user might want to reset dates
+            if (newQty === 0) {
+                resetPayload.receivedDate = '';
+                resetPayload.openedDate = '';
+                resetPayload.actionDate = '';
+                // resetPayload.memo = ''; // Keep inventory memo separate, don't clear it
+                resetPayload.isOrdered = false;
+                resetPayload.status = 'danger';
+            }
+
+            try {
+                confirmDisposalBtn.textContent = '처리 중...';
+                await db.collection('disposals').doc(disposalId).set(disposalPayload);
+                await db.collection('inventory').doc(id).set(resetPayload, { merge: true });
+                closeDisposalModal();
+            } catch(e) {
+                console.error('Error archiving disposal', e);
+                alert('처리 실패');
+            } finally {
+                confirmDisposalBtn.textContent = '폐기 확정';
             }
         });
     }
@@ -212,23 +310,81 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTimeHeader();
 
         // Firebase Listeners
-        db.collection('employees').onSnapshot((snapshot) => {
-            employees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        db.collection('employees').onSnapshot(snapshot => {
+            employees = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                employees.push({
+                    id: doc.id,
+                    name: data.name,
+                    hourlyWage: data.hourlyWage || defaultWage,
+                    color1: data.color1 || colors[0][0],
+                    color2: data.color2 || colors[0][1],
+                    isResigned: data.isResigned || false,
+                    applyHolidayAllowance: data.applyHolidayAllowance || false,
+                    excludeSalary: data.excludeSalary || false
+                });
+            });
             renderEmployees();
             updateBoard();
         });
-
-        db.collection('schedules').onSnapshot((snapshot) => {
-            schedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Schedules
+        db.collection('schedules').onSnapshot(snapshot => {
+            schedules = [];
+            snapshot.forEach(doc => {
+                schedules.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
             updateBoard();
         });
         
-        db.collection('presets').orderBy('createdAt').onSnapshot((snapshot) => {
-            presets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderPresetDropdown();
+        // Presets
+        db.collection('presets').onSnapshot(snapshot => {
+            presets = [];
+            snapshot.forEach(doc => {
+                presets.push({ id: doc.id, ...doc.data() });
+            });
+            updatePresetSelects();
             renderPresetManageList();
         });
 
+        db.collection('inventory').onSnapshot(snapshot => {
+            inventoryData = {};
+            snapshot.forEach(doc => {
+                inventoryData[doc.id] = doc.data();
+            });
+            if (viewMode === 'inventory') {
+                renderInventory();
+            }
+        });
+        
+        // Disposals
+        db.collection('disposals').onSnapshot(snapshot => {
+            disposalData = {};
+            snapshot.forEach(doc => {
+                disposalData[doc.id] = doc.data();
+            });
+            if (viewMode === 'disposal') {
+                renderDisposalArchive();
+            }
+        });
+        
+        // Inventory Check
+        db.collection('settings').doc('inventoryCheck').onSnapshot(doc => {
+            if (doc.exists) {
+                inventoryCheckData = doc.data();
+            } else {
+                inventoryCheckData = null;
+            }
+            if (viewMode === 'inventory' || viewMode === 'disposal') {
+                renderInventoryCheckStatus();
+            }
+        });
+        
+        // Configs
         db.collection('settings').doc('admin').onSnapshot((doc) => {
             if (doc.exists) {
                 const data = doc.data();
@@ -570,6 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
     viewDailyBtn.addEventListener('click', () => setViewMode('daily'));
     viewWeeklyBtn.addEventListener('click', () => setViewMode('weekly'));
     viewMonthlyBtn.addEventListener('click', () => setViewMode('monthly'));
+    viewInventoryBtn.addEventListener('click', () => setViewMode('inventory'));
     viewSalaryBtn.addEventListener('click', () => {
         if (viewMode === 'salary') return;
         passwordTargetAction = 'salary';
@@ -577,11 +734,48 @@ document.addEventListener('DOMContentLoaded', () => {
         salaryPasswordInput.focus();
     });
     
+    const toggleDisposalBtn = document.getElementById('toggle-disposal-btn');
+    const backToInventoryBtn = document.getElementById('back-to-inventory-btn');
+    if (toggleDisposalBtn) {
+        toggleDisposalBtn.addEventListener('click', () => setViewMode('disposal'));
+    }
+    if (backToInventoryBtn) {
+        backToInventoryBtn.addEventListener('click', () => setViewMode('inventory'));
+    }
+    
     clearSchedulesBtn.addEventListener('click', () => {
         passwordTargetAction = 'clear';
         passwordModal.style.display = 'flex';
         salaryPasswordInput.focus();
     });
+    
+    const addInventoryBtn = document.getElementById('add-inventory-btn');
+    const newInventoryNameInput = document.getElementById('new-inventory-name');
+    if (addInventoryBtn && newInventoryNameInput) {
+        addInventoryBtn.addEventListener('click', async () => {
+            const name = newInventoryNameInput.value.trim();
+            if (!name) return;
+            
+            const id = 'inv_' + Date.now();
+            const payload = {
+                id,
+                name,
+                status: 'good',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            addInventoryBtn.disabled = true;
+            try {
+                await db.collection('inventory').doc(id).set(payload);
+                newInventoryNameInput.value = '';
+            } catch(e) {
+                console.error(e);
+                alert('추가 실패');
+            } finally {
+                addInventoryBtn.disabled = false;
+            }
+        });
+    }
 
     if (cancelEditSchedBtn) {
         cancelEditSchedBtn.addEventListener('click', () => {
@@ -750,11 +944,15 @@ document.addEventListener('DOMContentLoaded', () => {
         viewWeeklyBtn.classList.remove('active');
         viewMonthlyBtn.classList.remove('active');
         viewSalaryBtn.classList.remove('active');
+        viewInventoryBtn.classList.remove('active');
         
         viewContainerDaily.style.display = 'none';
         viewContainerWeekly.style.display = 'none';
         viewContainerMonthly.style.display = 'none';
         viewContainerSalary.style.display = 'none';
+        viewContainerInventory.style.display = 'none';
+        if (viewContainerDisposal) viewContainerDisposal.style.display = 'none';
+        document.querySelector('.board-controls').style.display = 'flex'; // show board controls by default
 
         if (mode === 'daily') {
             viewDailyBtn.classList.add('active');
@@ -768,8 +966,23 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mode === 'salary') {
             viewSalaryBtn.classList.add('active');
             viewContainerSalary.style.display = 'block';
+        } else if (mode === 'inventory') {
+            viewInventoryBtn.classList.add('active');
+            viewContainerInventory.style.display = 'block';
+            document.querySelector('.board-controls').style.display = 'none'; // hide board controls for inventory
+            renderInventoryCheckStatus();
+            renderInventory(); // Load inventory data
+        } else if (mode === 'disposal') {
+            viewInventoryBtn.classList.add('active'); // Keep inventory tab highlighted
+            if (viewContainerDisposal) viewContainerDisposal.style.display = 'block';
+            document.querySelector('.board-controls').style.display = 'none'; 
+            renderInventoryCheckStatus();
+            renderDisposalArchive();
         }
-        updateBoard();
+        
+        if (mode !== 'inventory' && mode !== 'disposal') {
+            updateBoard();
+        }
     }
     
     function getWeekDates(baseDate) {
@@ -818,6 +1031,272 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         scheduleDateInput.value = formatDateString(currentDate);
     }
+    
+    // --- Inventory Management ---
+    window.recalcInventoryStatus = function(id) {
+        const row = document.getElementById(`inv-row-${id}`);
+        if (!row) return;
+        const qty = parseInt(row.querySelector('.inv-qty').value) || 0;
+        const thres = parseInt(row.querySelector('.inv-threshold').value) || 0;
+        const isOrdered = row.querySelector('.inv-ordered').checked;
+        const badgeContainer = row.querySelector('.inv-badge-container');
+        
+        if (isOrdered) {
+            badgeContainer.innerHTML = `<span class="status-badge status-ordered">배송 중<br>🚚</span>`;
+        } else if (qty <= thres) {
+            badgeContainer.innerHTML = `<span class="status-badge status-danger">부족<br>(발주요망)</span>`;
+        } else {
+            badgeContainer.innerHTML = `<span class="status-badge status-good">충분<br>(여유)</span>`;
+        }
+    };
+
+    window.saveInventoryItem = async function(id) {
+        const row = document.getElementById(`inv-row-${id}`);
+        if (!row) return;
+        
+        const btn = row.querySelector('.save-inv-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '저장중...';
+        btn.disabled = true;
+
+        const data = inventoryData[id] || { name: '알 수 없음' };
+        
+        const qty = parseInt(row.querySelector('.inv-qty').value) || 0;
+        const thres = parseInt(row.querySelector('.inv-threshold').value) || 0;
+        const isOrdered = row.querySelector('.inv-ordered').checked;
+        
+        let status = 'good';
+        if (isOrdered) status = 'ordered';
+        else if (qty <= thres) status = 'danger';
+
+        const payload = {
+            id: id,
+            name: data.name,
+            quantity: qty,
+            threshold: thres,
+            isOrdered: isOrdered,
+            status: status,
+            receivedDate: row.querySelector('.inv-received').value,
+            openedDate: row.querySelector('.inv-opened').value,
+            actionDate: row.querySelector('.inv-action').value,
+            memo: row.querySelector('.inv-memo').value,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            await db.collection('inventory').doc(id).set(payload, { merge: true });
+            btn.textContent = '저장됨 ✓';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+        } catch(e) {
+            console.error('Error saving inventory', e);
+            btn.textContent = '실패';
+            btn.disabled = false;
+        }
+    };
+    
+    window.archiveDisposal = function(id) {
+        const row = document.getElementById(`inv-row-${id}`);
+        if (!row) return;
+        
+        const qty = parseInt(row.querySelector('.inv-qty').value) || 0;
+        const memo = row.querySelector('.inv-memo').value;
+        const data = inventoryData[id];
+        if (!data) return;
+        
+        if (qty <= 0) {
+            alert('현재 수량이 0개입니다. 폐기할 항목이 없습니다.');
+            return;
+        }
+
+        currentDisposalItem = { id, currentQty: qty };
+        disposalItemNameEl.textContent = data.name;
+        disposalCurrentQtyEl.textContent = qty;
+        disposalQtyInput.max = qty;
+        disposalQtyInput.value = qty; // Default to all
+        disposalMemoInput.value = ''; // Do not load inventory memo, keep it separate
+        
+        disposalModal.style.display = 'flex';
+    };
+    
+    window.deleteDisposalRecord = async function(dispId) {
+        showConfirm('이 폐기 기록을 완전히 삭제하시겠습니까?', async () => {
+            try {
+                await db.collection('disposals').doc(dispId).delete();
+            } catch(e) {
+                console.error('Error deleting disposal record', e);
+            }
+        });
+    };
+
+    window.deleteInventoryItem = async function(id) {
+        showConfirm('정말 이 품목 자체를 삭제하시겠습니까? (재고 목록에서 영구 삭제됩니다)', async () => {
+            try {
+                await db.collection('inventory').doc(id).delete();
+                delete inventoryData[id];
+                renderInventory();
+            } catch (e) {
+                console.error('Error deleting inventory', e);
+            }
+        });
+    };
+
+    function renderDisposalArchive() {
+        const tbody = document.getElementById('disposal-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        
+        const items = Object.values(disposalData).sort((a, b) => {
+            const timeA = a.archivedAt ? a.archivedAt.toMillis() : 0;
+            const timeB = b.archivedAt ? b.archivedAt.toMillis() : 0;
+            return timeB - timeA; // Descending order (newest first)
+        });
+
+        items.forEach(data => {
+            const tr = document.createElement('tr');
+            let dateStr = '';
+            if (data.archivedAt) {
+                const d = data.archivedAt.toDate();
+                dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+            tr.innerHTML = `
+                <td>${dateStr}</td>
+                <td style="font-weight: 600;">${data.name}</td>
+                <td>${data.quantity || 0}</td>
+                <td style="text-align: left;">${data.memo || ''}</td>
+                <td><button class="btn outline-danger btn-sm" onclick="deleteDisposalRecord('${data.id}')">삭제</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    const checkBanner = document.getElementById('inventory-check-banner');
+    const checkIcon = document.getElementById('inventory-check-icon');
+    const checkTitle = document.getElementById('inventory-check-title');
+    const checkDesc = document.getElementById('inventory-check-desc');
+    const checkBtn = document.getElementById('complete-inventory-check-btn');
+
+    function renderInventoryCheckStatus() {
+        if (!checkBanner) return;
+        
+        const todayStr = formatDateString(new Date());
+        let isCheckedToday = false;
+        let checkedTimeStr = '';
+
+        if (inventoryCheckData && inventoryCheckData.lastCheckedDate === todayStr) {
+            isCheckedToday = true;
+            if (inventoryCheckData.checkedAt) {
+                const d = inventoryCheckData.checkedAt.toDate();
+                checkedTimeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+        }
+
+        if (isCheckedToday) {
+            checkBanner.style.background = 'rgba(16, 185, 129, 0.1)';
+            checkBanner.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            checkIcon.textContent = '✅';
+            checkTitle.textContent = `오늘(${todayStr}) 재고 점검: 완료 (${checkedTimeStr})`;
+            checkTitle.style.color = '#10b981';
+            checkDesc.textContent = '점검이 완료되었습니다. 고생하셨습니다!';
+            checkBtn.textContent = '점검 취소';
+            checkBtn.className = 'btn outline-danger';
+        } else {
+            checkBanner.style.background = 'rgba(239, 68, 68, 0.1)';
+            checkBanner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            checkIcon.textContent = '🔴';
+            checkTitle.textContent = `오늘(${todayStr}) 재고 점검: 미완료`;
+            checkTitle.style.color = 'white';
+            checkDesc.textContent = '오전 근무자는 재고 확인 후 우측 버튼을 눌러주세요.';
+            checkBtn.textContent = '점검 완료하기';
+            checkBtn.className = 'btn primary';
+        }
+    }
+
+    if (checkBtn) {
+        checkBtn.addEventListener('click', async () => {
+            const todayStr = formatDateString(new Date());
+            const isCurrentlyChecked = inventoryCheckData && inventoryCheckData.lastCheckedDate === todayStr;
+
+            checkBtn.disabled = true;
+            try {
+                if (isCurrentlyChecked) {
+                    if (confirm('오늘의 재고 점검 상태를 미완료로 되돌리시겠습니까?')) {
+                        await db.collection('settings').doc('inventoryCheck').set({
+                            lastCheckedDate: '',
+                            checkedAt: null
+                        });
+                    }
+                } else {
+                    await db.collection('settings').doc('inventoryCheck').set({
+                        lastCheckedDate: todayStr,
+                        checkedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                alert('처리 실패');
+            } finally {
+                checkBtn.disabled = false;
+            }
+        });
+    }
+
+    function renderInventory() {
+        if (!inventoryTbody) return;
+        inventoryTbody.innerHTML = '';
+        
+        const getStatusHtml = (status) => {
+            if (status === 'ordered') return `<span class="status-badge status-ordered">배송 중<br>🚚</span>`;
+            if (status === 'danger') return `<span class="status-badge status-danger">부족<br>(발주요망)</span>`;
+            return `<span class="status-badge status-good">충분<br>(여유)</span>`;
+        };
+        
+        const items = Object.values(inventoryData).sort((a, b) => {
+            if (a.createdAt && b.createdAt) return a.createdAt.toMillis() - b.createdAt.toMillis();
+            return a.name.localeCompare(b.name);
+        });
+
+        items.forEach(data => {
+            const tr = document.createElement('tr');
+            tr.id = `inv-row-${data.id}`;
+            const qty = data.quantity || 0;
+            const thres = data.threshold || 0;
+            const isOrdered = data.isOrdered ? 'checked' : '';
+            
+            tr.innerHTML = `
+                <td style="font-weight: 600; text-align: left; padding-left: 1rem;">${data.name}</td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
+                        <input type="number" class="inv-qty inv-qty-input" value="${qty}" min="0" oninput="recalcInventoryStatus('${data.id}')">
+                        <span style="color: var(--text-muted);">/</span>
+                        <input type="number" class="inv-threshold inv-qty-input" value="${thres}" min="0" oninput="recalcInventoryStatus('${data.id}')" title="경고 기준 수량">
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
+                        <div class="inv-badge-container">${getStatusHtml(data.status)}</div>
+                        <label style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" class="inv-ordered" onchange="recalcInventoryStatus('${data.id}')" ${isOrdered}> 발주 완료
+                        </label>
+                    </div>
+                </td>
+                <td><input type="date" class="inv-received" value="${data.receivedDate || ''}"></td>
+                <td><input type="date" class="inv-opened" value="${data.openedDate || ''}"></td>
+                <td><input type="date" class="inv-action" value="${data.actionDate || ''}"></td>
+                <td><input type="text" class="inv-memo" value="${data.memo || ''}" placeholder="메모 (사유 등)"></td>
+                <td>
+                    <div style="display: flex; gap: 0.2rem; justify-content: center; margin-bottom: 0.3rem;">
+                        <button class="btn primary btn-sm save-inv-btn" onclick="saveInventoryItem('${data.id}')">저장</button>
+                        <button class="btn outline-danger btn-sm" onclick="deleteInventoryItem('${data.id}')" title="목록에서 삭제">삭제</button>
+                    </div>
+                    <button class="btn secondary btn-sm" style="width: 100%; font-size: 0.75rem; padding: 0.2rem;" onclick="archiveDisposal('${data.id}')">🗑️ 폐기 이관</button>
+                </td>
+            `;
+            inventoryTbody.appendChild(tr);
+        });
+    }
 
     // --- CRUD ---
     async function addEmployee() {
@@ -851,8 +1330,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyHolidayAllowance: applyHolidayAllowance,
                 excludeSalary: excludeSalary
             });
+            alert(`'${name}' 근무자가 등록되었습니다.`);
         } catch (e) {
             console.error(e);
+            alert('근무자 등록에 실패했습니다.');
         }
     }
 

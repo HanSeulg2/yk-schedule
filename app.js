@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const weeklyThead = document.getElementById('weekly-thead');
     const weeklyTbody = document.getElementById('weekly-tbody');
     const monthlyGrid = document.getElementById('monthly-grid');
+    const adminMonthlyGrid = document.getElementById('admin-monthly-grid');
     const salaryTbody = document.getElementById('salary-tbody');
 
     // Modal Elements
@@ -131,6 +132,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const editSchedEndInput = document.getElementById('edit-sched-end');
     const cancelEditSchedBtn = document.getElementById('cancel-edit-sched-btn');
     const confirmEditSchedBtn = document.getElementById('confirm-edit-sched-btn');
+
+    // DOM Elements - Quick Add Schedule Modal
+    const quickAddModal = document.getElementById('quick-add-schedule-modal');
+    const quickAddDateInput = document.getElementById('quick-add-date');
+    const quickAddEmpSelect = document.getElementById('quick-add-emp');
+    const quickAddPresetSelect = document.getElementById('quick-add-preset');
+    const quickAddStartInput = document.getElementById('quick-add-start');
+    const quickAddEndInput = document.getElementById('quick-add-end');
+    const cancelQuickAddTopBtn = document.getElementById('cancel-quick-add-top-btn');
+    const cancelQuickAddBtn = document.getElementById('cancel-quick-add-btn');
+    const confirmQuickAddBtn = document.getElementById('confirm-quick-add-btn');
     const deleteEditSchedBtn = document.getElementById('delete-edit-sched-btn');
     
     // DOM Elements - Preset Manage
@@ -330,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (dStr === sched.date) option.selected = true;
                                 editSchedWeekdaySelect.appendChild(option);
                             });
-                        } else if (viewMode === 'monthly') {
+                        } else if (viewMode === 'monthly' || viewMode === 'salary') {
                             editSchedDateWrapper.style.display = 'block';
                             editSchedWeekdayWrapper.style.display = 'none';
                             editSchedDateInput.value = sched.date;
@@ -598,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let newDate = null;
             if (viewMode === 'weekly') {
                 newDate = editSchedWeekdaySelect.value;
-            } else if (viewMode === 'monthly') {
+            } else if (viewMode === 'monthly' || viewMode === 'salary') {
                 newDate = editSchedDateInput.value;
             }
             
@@ -618,6 +630,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 } finally {
                     confirmEditSchedBtn.textContent = '저장';
                 }
+            }
+        });
+    }
+
+    // Quick Add Modal Logic
+    function closeQuickAddModal() {
+        quickAddModal.style.display = 'none';
+        quickAddDateInput.value = '';
+        quickAddEmpSelect.value = '';
+        quickAddStartInput.value = '09:00';
+        quickAddEndInput.value = '14:00';
+    }
+
+    if (cancelQuickAddTopBtn) cancelQuickAddTopBtn.addEventListener('click', closeQuickAddModal);
+    if (cancelQuickAddBtn) cancelQuickAddBtn.addEventListener('click', closeQuickAddModal);
+    
+    if (quickAddPresetSelect) {
+        quickAddPresetSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            const p = presets.find(pr => pr.id === val);
+            if (p) {
+                quickAddStartInput.value = p.start;
+                quickAddEndInput.value = p.end;
+            }
+        });
+    }
+
+    if (confirmQuickAddBtn) {
+        confirmQuickAddBtn.addEventListener('click', async () => {
+            const dateStr = quickAddDateInput.value;
+            const empId = quickAddEmpSelect.value;
+            const start = quickAddStartInput.value;
+            const end = quickAddEndInput.value;
+            
+            if (!empId) { alert('근무자를 선택해주세요.'); return; }
+            if (!start || !end) { alert('시간을 입력해주세요.'); return; }
+            
+            const emp = employees.find(e => e.id === empId);
+            if (!emp) return;
+            
+            try {
+                confirmQuickAddBtn.textContent = '등록 중...';
+                await db.collection('schedules').add({
+                    date: dateStr,
+                    empId: emp.id,
+                    empName: emp.name,
+                    start, end,
+                    color1: emp.color1,
+                    color2: emp.color2
+                });
+                closeQuickAddModal();
+            } catch (e) {
+                console.error(e);
+                alert('스케줄 추가 실패');
+            } finally {
+                confirmQuickAddBtn.textContent = '등록';
             }
         });
     }
@@ -744,6 +812,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderSalaryView(currentDate);
             }
         }
+        
+        if (viewMode === 'salary' && adminMonthlyGrid) {
+            renderAdminCalendar(currentDate);
+        }
         scheduleDateInput.value = formatDateString(currentDate);
     }
 
@@ -805,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderEmployees() {
         employeeListEl.innerHTML = '';
         scheduleEmpSelect.innerHTML = '<option value="" disabled selected>근무자를 선택하세요</option>';
+        if (quickAddEmpSelect) quickAddEmpSelect.innerHTML = '<option value="" disabled selected>근무자를 선택하세요</option>';
         
         const showResigned = showResignedCb.checked;
         
@@ -833,6 +906,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.value = emp.id;
                 option.textContent = emp.name;
                 scheduleEmpSelect.appendChild(option);
+                
+                if (quickAddEmpSelect) {
+                    const qaOption = document.createElement('option');
+                    qaOption.value = emp.id;
+                    qaOption.textContent = emp.name;
+                    quickAddEmpSelect.appendChild(qaOption);
+                }
             }
         });
     }
@@ -1276,6 +1356,91 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             monthlyGrid.appendChild(cell);
+        }
+    }
+
+    function renderAdminCalendar(baseDate) {
+        adminMonthlyGrid.innerHTML = '';
+        const year = baseDate.getFullYear();
+        const month = baseDate.getMonth();
+        const todayStr = formatDateString(new Date());
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        let startOffset = firstDay.getDay(); 
+        
+        for (let i = 0; i < 42; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'monthly-day';
+            cell.style.cursor = 'pointer';
+            
+            const cellDate = new Date(year, month, 1 - startOffset + i);
+            const dateStr = formatDateString(cellDate);
+            
+            let isCurrentMonth = cellDate.getMonth() === month;
+            if (!isCurrentMonth) cell.classList.add('other-month');
+            if (dateStr === todayStr) cell.classList.add('today');
+            
+            cell.innerHTML = `<div class="monthly-day-number">${cellDate.getDate()}</div>`;
+            
+            const dayScheds = schedules.filter(s => s.date === dateStr).sort((a,b) => a.start.localeCompare(b.start));
+            dayScheds.forEach(sched => {
+                const item = document.createElement('div');
+                item.className = 'monthly-schedule-item';
+                item.style.setProperty('--bg-color-1', sched.color1);
+                item.style.setProperty('--bg-color-2', sched.color2);
+                item.title = `${sched.empName} ${sched.start}~${sched.end}`;
+                item.innerHTML = `
+                    ${sched.empName} (${sched.start}~${sched.end})
+                `;
+                
+                // Admin Double Click Edit
+                item.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    pendingScheduleId = sched.id;
+                    editSchedDateInput.value = sched.date;
+                    editSchedDateWrapper.style.display = 'block';
+                    editSchedWeekdayWrapper.style.display = 'none';
+                    passwordTargetAction = 'edit-schedule';
+                    passwordModal.style.display = 'flex';
+                });
+                
+                // Admin Delete Button - Optional: we can just rely on dbl click, but let's add delete button
+                item.innerHTML += `<button class="delete-monthly-btn" data-id="${sched.id}">&times;</button>`;
+                item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
+                    e.stopPropagation(); 
+                    showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                        pendingScheduleId = e.target.dataset.id;
+                        passwordTargetAction = 'delete-schedule';
+                        passwordModal.style.display = 'flex';
+                    });
+                });
+                
+                cell.appendChild(item);
+            });
+            
+            // Admin Calendar cell click to Quick Add
+            cell.addEventListener('click', (e) => {
+                // Ignore if clicked on schedule item (they have their own handler)
+                if (e.target.closest('.monthly-schedule-item')) return;
+                
+                quickAddDateInput.value = dateStr;
+                quickAddModal.style.display = 'flex';
+                
+                // Populate presets dynamically
+                if (quickAddPresetSelect) {
+                    quickAddPresetSelect.innerHTML = '<option value="">직접 입력</option>';
+                    presets.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.textContent = `${p.name} (${p.start}~${p.end})`;
+                        quickAddPresetSelect.appendChild(opt);
+                    });
+                }
+            });
+
+            adminMonthlyGrid.appendChild(cell);
         }
     }
 

@@ -77,8 +77,11 @@
                 <!-- 관리자 메뉴 뷰 -->
                 <div class="timeline-wrapper" id="view-container-salary" style="display: none; padding: 1.5rem;">
                     
-                    <!-- 스케줄 등록 (관리자 메뉴 내부로 이동) -->
-                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
+                    <div class="admin-top-layout">
+                        <!-- 좌측: 등록 및 관리 폼 -->
+                        <div class="admin-left-col">
+                            <!-- 스케줄 등록 (관리자 메뉴 내부로 이동) -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
                         <h3 style="color: white; margin: 0 0 1rem 0;">스케줄 등록</h3>
                         
                         <div class="schedule-mode-toggle" style="margin-bottom: 1rem;">
@@ -86,7 +89,7 @@
                             <label class="radio-label"><input type="radio" name="sched-mode" value="recurring"> <span>기간 & 요일 반복</span></label>
                         </div>
                         
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start;">
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
                             <div id="single-date-wrapper" class="form-group" style="margin: 0; min-width: 150px;">
                                 <label>날짜</label>
                                 <input type="date" id="schedule-date">
@@ -137,7 +140,7 @@
                                 </div>
                             </div>
                             
-                            <button id="add-schedule-btn" class="btn accent" style="height: 42px; margin-top: 1.4rem; padding: 0 2rem;">스케줄 등록</button>
+                            <button id="add-schedule-btn" class="btn accent" style="height: 42px; padding: 0 2rem;">스케줄 등록</button>
                         </div>
                     </div>
 
@@ -149,7 +152,7 @@
                                 <input type="checkbox" id="show-resigned-cb"> 퇴사자 포함 보기
                             </label>
                         </div>
-                        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                        <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
                             <div class="form-group" style="flex: 1; margin: 0;">
                                 <label>이름</label>
                                 <input type="text" id="emp-name" placeholder="이름을 입력하세요" autocomplete="off">
@@ -171,6 +174,23 @@
                         <ul id="employee-list" class="employee-list mt-2" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem; padding: 0;">
                             <!-- 근무자 리스트 렌더링 -->
                         </ul>
+                    </div>
+                        </div>
+                        
+                        <!-- 우측: 관리자 전용 달력 -->
+                        <div class="admin-right-col">
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h3 style="color: white; margin: 0;">관리자 스케줄 달력</h3>
+                                </div>
+                                <div class="monthly-calendar admin-calendar">
+                                    <div class="monthly-header">
+                                        <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+                                    </div>
+                                    <div class="monthly-grid" id="admin-monthly-grid" style="grid-auto-rows: minmax(80px, auto);"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -381,7 +401,7 @@
     </div>
 
     <!-- 스케줄 수정 모달 -->
-    <div id="edit-schedule-modal" class="modal-overlay" style="display: none;">
+    <div id="edit-schedule-modal" class="modal-overlay" style="display: none; z-index: 1000;">
         <div class="modal-content glass-panel" style="max-width: 320px;">
             <h3 style="margin-top: 0;">스케줄 수정</h3>
             
@@ -405,6 +425,45 @@
                 <button id="delete-edit-sched-btn" class="btn outline-danger" style="flex: 0 0 auto; padding: 0 1rem;" title="삭제">🗑️</button>
                 <button id="cancel-edit-sched-btn" class="btn outline-light" style="flex: 1;">취소</button>
                 <button id="confirm-edit-sched-btn" class="btn primary" style="flex: 1;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스케줄 퀵 등록 모달 (관리자 달력 클릭 시) -->
+    <div id="quick-add-schedule-modal" class="modal-overlay" style="display: none; z-index: 1000;">
+        <div class="modal-content glass-panel" style="max-width: 350px;">
+            <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                <span id="quick-add-title">새 스케줄 등록</span>
+                <button id="cancel-quick-add-top-btn" class="btn text" style="color:var(--text-muted); font-size: 1.2rem; padding: 0;">&times;</button>
+            </h3>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>선택된 날짜</label>
+                <input type="date" id="quick-add-date" disabled style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: var(--text-muted);">
+            </div>
+
+            <div class="form-group">
+                <label>근무자 선택</label>
+                <select id="quick-add-emp" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+                    <option value="" disabled selected>선택</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>시간 (프리셋 선택 가능)</label>
+                <select id="quick-add-preset" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white; margin-bottom: 0.5rem;">
+                    <option value="">직접 입력</option>
+                </select>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="time" id="quick-add-start" value="09:00" style="flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+                    <span style="display:flex; align-items:center; color:white;">~</span>
+                    <input type="time" id="quick-add-end" value="14:00" style="flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button id="cancel-quick-add-btn" class="btn outline-light" style="flex: 1;">취소</button>
+                <button id="confirm-quick-add-btn" class="btn accent" style="flex: 1;">등록</button>
             </div>
         </div>
     </div>

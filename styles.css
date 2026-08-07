@@ -85,7 +85,7 @@ body {
 }
 
 .app-container {
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 2rem;
     display: flex;
@@ -531,7 +531,9 @@ input:focus, select:focus {
 }
 
 .weekly-table th {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     font-weight: 600;
     color: var(--text-muted);
     position: sticky;
@@ -539,17 +541,27 @@ input:focus, select:focus {
     z-index: 5;
 }
 
+.weekly-table th:first-child {
+    left: 0;
+    z-index: 6; /* Higher than other th to stay on top when scrolling both ways */
+}
+
 .weekly-table th.today-header {
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(99, 102, 241, 0.3);
     color: #fff;
     border-bottom: 2px solid var(--primary);
 }
 
 .weekly-table td.emp-name-col {
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     font-weight: 600;
     width: 120px;
     vertical-align: middle;
+    position: sticky;
+    left: 0;
+    z-index: 2; /* Needs to be above normal td cells */
 }
 
 .weekly-schedule-item {
@@ -885,8 +897,40 @@ input:focus, select:focus {
 }
 
 /* =========================================================
+   Admin Layout (2-Column)
+   ========================================================= */
+.admin-top-layout {
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.admin-left-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-right-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.admin-calendar {
+    min-width: 0 !important;
+    height: auto !important;
+}
+
+/* =========================================================
    Mobile Responsiveness
    ========================================================= */
+@media (max-width: 1024px) {
+    .admin-top-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .app-container {
         padding: 1rem;

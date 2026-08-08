@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let inventoryData = {};
     let disposalData = {};
     let inventoryCheckData = null;
+    let handoverData = [];
     
     const TIMELINE_START = 9;
     const TIMELINE_END = 24; // 09:00 ~ 24:00 (midnight)
@@ -90,6 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewContainerSalary = document.getElementById('view-container-salary');
     const viewContainerInventory = document.getElementById('view-container-inventory');
     const viewContainerDisposal = document.getElementById('view-container-disposal');
+    const viewContainerHandover = document.getElementById('view-container-handover');
+    
+    const viewHandoverBtn = document.getElementById('view-handover-btn');
+    const handoverEmpSelect = document.getElementById('handover-emp-select');
+    const handoverContentInput = document.getElementById('handover-content-input');
+    const addHandoverBtn = document.getElementById('add-handover-btn');
+    const handoverListContainer = document.getElementById('handover-list-container');
     
     const timeHeader = document.getElementById('time-header');
     const timelineGrid = document.getElementById('timeline-grid');
@@ -195,6 +203,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmDisposalBtn = document.getElementById('confirm-disposal-btn');
     let currentDisposalItem = null;
     
+    // Handover Check Modal
+    const handoverCheckModal = document.getElementById('handover-check-modal');
+    const handoverCheckEmpSelect = document.getElementById('handover-check-emp-select');
+    const confirmHandoverBtn = document.getElementById('confirm-handover-btn');
+    const cancelHandoverBtn = document.getElementById('cancel-handover-btn');
+    const closeHandoverModalBtn = document.getElementById('close-handover-modal-btn');
+    
+    let pendingHandoverCheckId = null;
+
+    // Rules Modal & Settings
+    const viewRulesBtn = document.getElementById('view-rules-btn');
+    const viewContainerRules = document.getElementById('view-container-rules');
+    const rulesModal = document.getElementById('rules-modal');
+    const closeRulesModalBtn = document.getElementById('close-rules-modal-btn');
+    const closeRulesBtn = document.getElementById('close-rules-btn');
+    const handoverRulesDisplay = document.getElementById('handover-rules-display');
+    const handoverClosingDisplay = document.getElementById('handover-closing-display');
+    const adminRulesInput = document.getElementById('admin-rules-input');
+    const adminClosingInput = document.getElementById('admin-closing-input');
+    const saveRulesBtn = document.getElementById('save-rules-btn');
+
     function showConfirm(msg, callback) {
         confirmModalMessage.textContent = msg;
         currentConfirmCallback = callback;
@@ -285,6 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+
     
     let editingEmpId = null;
     let editingEmpSelectedColor = null;
@@ -381,6 +412,65 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (viewMode === 'inventory' || viewMode === 'disposal') {
                 renderInventoryCheckStatus();
+            }
+        });
+
+        // Handovers
+        db.collection('handovers').orderBy('createdAt', 'desc').limit(50).onSnapshot(snapshot => {
+            handoverData = [];
+            snapshot.forEach(doc => {
+                handoverData.push({ id: doc.id, ...doc.data() });
+            });
+            if (viewMode === 'handover') {
+                renderHandovers();
+            } else if (viewMode === 'daily') {
+                renderDailyHandover(formatDateString(currentDate));
+            }
+        });
+        
+        // Rules
+        db.collection('settings').doc('rules').onSnapshot((doc) => {
+            let content = '';
+            let closing = '';
+            if (doc.exists) {
+                content = doc.data().content || '';
+                closing = doc.data().closing || '';
+            } else {
+                content = `영칼로리포케 부산경성대부경대점 기본 규칙\n\n[위생]\n모자 필히 착용 (머리카락 빠지지 않게 착용 필수)\n음식 조리 시 마스크 착용 (매장 내 기본형/투명마스크용 구비)\n맨 손으로 음식 만지지 않기 (비닐장갑 or 니트릴 장갑 착용)\n화장실 이용 시 앞치마 벗고 가기\n\n[복지]\n기본 음료 한잔 제공 ( * 라떼, 단백질음료, 콤부차 제외)\n4시간 미만 근무 시\n- 샌드위치 제공\n4시간 초과 근무 시\n- 한끼 식사 제공\n\n🚫무단 취식 적발 시 알바비 차감🚫`;
+                closing = `📌 마감 청소 안내\n\n🪟 홀\n1. 테이블 전체 닦기\n2. 의자 올리기\n3. 홀 바닥 청소\n4. 키오스크 전원 OFF\n5. 홀 물 디스펜서 청소\n6. 영업 마감 후 노트북 전원 OFF\n\n🍳 주방\n1. 식기 및 조리도구 설거지\n2. 작업대 테이블 3개 전체 청소\n3. 화구 청소 및 냉장고 청결 유지\n4. 바닥 청소\n  - 금요일 : 오픈 클리너 사용\n  - 토요일 : 물 청소\n5. 바닥 물기 제거\n\n✅ 마무리\n0. 일요일 오전 근무자에게 인수인계 사항 전달\n1. 싱크대 음식물 배수구 청소\n2. 설거지 구역 청소\n  - 화구 세정제로 기름 제거\n3. 가스 전원 OFF\n4. 일반 쓰레기 압축\n5. 일반/음식물 쓰레기통 초파리 퇴치제 사용\n6. 입구 간판 회수\n7. 캡스 경비 요청`;
+                db.collection('settings').doc('rules').set({ content, closing });
+            }
+            
+            if (rulesContentDisplay) {
+                let displayHtml = content
+                    .replace(/영칼로리포케 부산경성대부경대점 기본 규칙/g, '<strong style="font-size: 1.1rem; color: var(--primary);">영칼로리포케 부산경성대부경대점 기본 규칙</strong>')
+                    .replace(/\[위생\]/g, '<strong style="color: #10b981;">[위생]</strong>')
+                    .replace(/\[복지\]/g, '<strong style="color: #3b82f6;">[복지]</strong>')
+                    .replace(/🚫무단 취식 적발 시 알바비 차감🚫/g, '<strong style="color: var(--danger);">🚫무단 취식 적발 시 알바비 차감🚫</strong>');
+                rulesContentDisplay.innerHTML = displayHtml;
+            }
+            if (handoverRulesDisplay) {
+                let displayHtml = content
+                    .replace(/영칼로리포케 부산경성대부경대점 기본 규칙/g, '<strong style="font-size: 1.1rem; color: var(--primary);">영칼로리포케 부산경성대부경대점 기본 규칙</strong>')
+                    .replace(/\[위생\]/g, '<strong style="color: #10b981;">[위생]</strong>')
+                    .replace(/\[복지\]/g, '<strong style="color: #3b82f6;">[복지]</strong>')
+                    .replace(/🚫무단 취식 적발 시 알바비 차감🚫/g, '<strong style="color: var(--danger);">🚫무단 취식 적발 시 알바비 차감🚫</strong>');
+                handoverRulesDisplay.innerHTML = displayHtml;
+            }
+            if (adminRulesInput && document.activeElement !== adminRulesInput) {
+                adminRulesInput.value = content;
+            }
+
+            if (handoverClosingDisplay) {
+                let displayClosingHtml = closing
+                    .replace(/📌 마감 청소 안내/g, '<strong style="font-size: 1.1rem; color: #10b981;">📌 마감 청소 안내</strong>')
+                    .replace(/🪟 홀/g, '<strong style="color: #3b82f6;">🪟 홀</strong>')
+                    .replace(/🍳 주방/g, '<strong style="color: #f59e0b;">🍳 주방</strong>')
+                    .replace(/✅ 마무리/g, '<strong style="color: #ec4899;">✅ 마무리</strong>');
+                handoverClosingDisplay.innerHTML = displayClosingHtml;
+            }
+            if (adminClosingInput && document.activeElement !== adminClosingInput) {
+                adminClosingInput.value = closing;
             }
         });
         
@@ -727,6 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     viewWeeklyBtn.addEventListener('click', () => setViewMode('weekly'));
     viewMonthlyBtn.addEventListener('click', () => setViewMode('monthly'));
     viewInventoryBtn.addEventListener('click', () => setViewMode('inventory'));
+    if (viewHandoverBtn) viewHandoverBtn.addEventListener('click', () => setViewMode('handover'));
     viewSalaryBtn.addEventListener('click', () => {
         if (viewMode === 'salary') return;
         passwordTargetAction = 'salary';
@@ -945,13 +1036,17 @@ document.addEventListener('DOMContentLoaded', () => {
         viewMonthlyBtn.classList.remove('active');
         viewSalaryBtn.classList.remove('active');
         viewInventoryBtn.classList.remove('active');
+        if (viewRulesBtn) viewRulesBtn.classList.remove('active');
+        if (viewHandoverBtn) viewHandoverBtn.classList.remove('active');
         
         viewContainerDaily.style.display = 'none';
         viewContainerWeekly.style.display = 'none';
         viewContainerMonthly.style.display = 'none';
         viewContainerSalary.style.display = 'none';
         viewContainerInventory.style.display = 'none';
+        if (viewContainerRules) viewContainerRules.style.display = 'none';
         if (viewContainerDisposal) viewContainerDisposal.style.display = 'none';
+        if (viewContainerHandover) viewContainerHandover.style.display = 'none';
         document.querySelector('.board-controls').style.display = 'flex'; // show board controls by default
 
         if (mode === 'daily') {
@@ -978,9 +1073,18 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.board-controls').style.display = 'none'; 
             renderInventoryCheckStatus();
             renderDisposalArchive();
+        } else if (mode === 'rules') {
+            if (viewRulesBtn) viewRulesBtn.classList.add('active');
+            if (viewContainerRules) viewContainerRules.style.display = 'block';
+            document.querySelector('.board-controls').style.display = 'none';
+        } else if (mode === 'handover') {
+            if (viewHandoverBtn) viewHandoverBtn.classList.add('active');
+            if (viewContainerHandover) viewContainerHandover.style.display = 'block';
+            document.querySelector('.board-controls').style.display = 'none'; 
+            renderHandovers();
         }
         
-        if (mode !== 'inventory' && mode !== 'disposal') {
+        if (mode !== 'inventory' && mode !== 'disposal' && mode !== 'rules' && mode !== 'handover') {
             updateBoard();
         }
     }
@@ -1009,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateStr = formatDateString(currentDate);
             boardDateDisplay.textContent = `${dateStr} (${getDayName(currentDate)})`;
             renderTimeline(dateStr);
+            renderDailyHandover(dateStr);
         } else if (viewMode === 'weekly') {
             const weekDates = getWeekDates(currentDate);
             const startStr = formatDateString(weekDates[0]);
@@ -1298,6 +1403,261 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Handovers ---
+    if (addHandoverBtn) {
+        addHandoverBtn.addEventListener('click', async () => {
+            const empId = handoverEmpSelect.value;
+            const content = handoverContentInput.value.trim();
+            
+            if (!empId) {
+                alert('작성자를 선택해주세요.'); return;
+            }
+            if (!content) {
+                alert('인수인계 내용을 입력해주세요.'); return;
+            }
+            
+            const emp = employees.find(e => e.id === empId);
+            if (!emp) return;
+
+            addHandoverBtn.disabled = true;
+            try {
+                await db.collection('handovers').add({
+                    empId: emp.id,
+                    empName: emp.name,
+                    content: content,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    checkedBy: [] // Array of employee names who checked it
+                });
+                handoverContentInput.value = '';
+                handoverEmpSelect.value = '';
+            } catch (e) {
+                console.error(e);
+                alert('등록 실패');
+            } finally {
+                addHandoverBtn.disabled = false;
+            }
+        });
+    }
+
+    window.checkHandover = function(id) {
+        pendingHandoverCheckId = id;
+        if (handoverCheckEmpSelect) handoverCheckEmpSelect.value = '';
+        if (handoverCheckModal) handoverCheckModal.style.display = 'flex';
+    };
+
+    if (confirmHandoverBtn) {
+        confirmHandoverBtn.addEventListener('click', async () => {
+            if (!pendingHandoverCheckId) return;
+            const empId = handoverCheckEmpSelect.value;
+            if (!empId) {
+                alert('확인자를 선택해주세요.');
+                return;
+            }
+            
+            const emp = employees.find(e => e.id === empId);
+            if (!emp) return;
+            
+            try {
+                await db.collection('handovers').doc(pendingHandoverCheckId).update({
+                    checkedBy: firebase.firestore.FieldValue.arrayUnion(emp.name)
+                });
+                if (handoverCheckModal) handoverCheckModal.style.display = 'none';
+                pendingHandoverCheckId = null;
+            } catch (e) {
+                console.error(e);
+                alert('확인 처리 실패');
+            }
+        });
+    }
+
+    if (cancelHandoverBtn) cancelHandoverBtn.addEventListener('click', () => { if (handoverCheckModal) handoverCheckModal.style.display = 'none'; pendingHandoverCheckId = null; });
+    if (closeHandoverModalBtn) closeHandoverModalBtn.addEventListener('click', () => { if (handoverCheckModal) handoverCheckModal.style.display = 'none'; pendingHandoverCheckId = null; });
+
+    window.deleteHandover = async function(id) {
+        showConfirm('이 인수인계 기록을 삭제하시겠습니까?', async () => {
+            try {
+                await db.collection('handovers').doc(id).delete();
+            } catch (e) {
+                console.error(e);
+                alert('삭제 실패');
+            }
+        });
+    };
+
+    // --- Rules ---
+    if (viewRulesBtn) viewRulesBtn.addEventListener('click', () => setViewMode('rules'));
+    if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', () => rulesModal.style.display = 'none');
+    if (closeRulesBtn) closeRulesBtn.addEventListener('click', () => rulesModal.style.display = 'none');
+    
+    if (saveRulesBtn) {
+        saveRulesBtn.addEventListener('click', async () => {
+            saveRulesBtn.textContent = '저장 중...';
+            try {
+                await db.collection('settings').doc('rules').set({ 
+                    content: adminRulesInput.value,
+                    closing: adminClosingInput.value
+                });
+                alert('매장 매뉴얼이 저장되었습니다.');
+            } catch (e) {
+                console.error(e);
+                alert('저장 실패');
+            } finally {
+                saveRulesBtn.textContent = '저장';
+            }
+        });
+    }
+
+    function renderDailyHandover(dateStr) {
+        const dailyHandoverList = document.getElementById('daily-handover-list');
+        if (!dailyHandoverList) return;
+        dailyHandoverList.innerHTML = '';
+        
+        // Filter handovers: either created on this dateStr, OR unchecked
+        const relevantHandovers = handoverData.filter(item => {
+            if (!item.createdAt) return false;
+            const d = item.createdAt.toDate();
+            const itemDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const isUnchecked = !item.checkedBy || item.checkedBy.length === 0;
+            return itemDateStr === dateStr || isUnchecked;
+        });
+
+        if (relevantHandovers.length === 0) {
+            dailyHandoverList.innerHTML = '<div class="empty-state" style="position:static;"><p>오늘 작성되거나 미확인된 인수인계가 없습니다.</p></div>';
+            return;
+        }
+
+        const cardsContainer = document.createElement('div');
+        cardsContainer.style.display = 'flex';
+        cardsContainer.style.flexDirection = 'column';
+        cardsContainer.style.gap = '0.8rem';
+        
+        relevantHandovers.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'glass-panel';
+            card.style.padding = '1rem';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.gap = '0.5rem';
+            
+            const isChecked = item.checkedBy && item.checkedBy.length > 0;
+            if (!isChecked) {
+                card.style.border = '1px solid var(--danger)';
+            }
+
+            let timeStr = '';
+            if (item.createdAt) {
+                const d = item.createdAt.toDate();
+                timeStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+            
+            const checkedByStr = isChecked 
+                ? `<div style="font-size: 0.8rem; color: #10b981;">✅ 확인자: ${item.checkedBy.join(', ')}</div>`
+                : `<div style="font-size: 0.8rem; color: var(--danger); font-weight: bold;">🔴 미확인</div>`;
+            
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; font-size: 0.95rem; color: ${!isChecked ? 'var(--danger)' : 'white'};">${item.empName} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(${timeStr})</span></span>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 4px; border-left: 2px solid ${!isChecked ? 'var(--danger)' : 'var(--primary)'}; white-space: pre-wrap; font-size: 0.85rem;">${item.content}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem;">
+                    ${checkedByStr}
+                    <button class="btn ${!isChecked ? 'primary' : 'outline-light'} btn-sm" onclick="checkHandover('${item.id}')" style="font-size: 0.75rem; padding: 2px 8px;">✅ 확인</button>
+                </div>
+            `;
+            cardsContainer.appendChild(card);
+        });
+        dailyHandoverList.appendChild(cardsContainer);
+    }
+
+    function renderHandovers() {
+        if (!handoverListContainer) return;
+        handoverListContainer.innerHTML = '';
+        
+        if (handoverData.length === 0) {
+            handoverListContainer.innerHTML = '<div class="empty-state" style="position:static;"><p>작성된 인수인계가 없습니다.</p></div>';
+            return;
+        }
+        
+        // Group by Date
+        const grouped = {};
+        handoverData.forEach(item => {
+            let dateKey = '날짜 미상';
+            let timeStr = '';
+            if (item.createdAt) {
+                const d = item.createdAt.toDate();
+                dateKey = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+                timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+            if (!grouped[dateKey]) grouped[dateKey] = [];
+            item._timeStr = timeStr;
+            grouped[dateKey].push(item);
+        });
+        
+        const todayStr = `${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일`;
+
+        for (const [dateKey, items] of Object.entries(grouped)) {
+            const groupHeader = document.createElement('div');
+            groupHeader.style.marginTop = '1.5rem';
+            groupHeader.style.marginBottom = '1rem';
+            groupHeader.style.display = 'flex';
+            groupHeader.style.alignItems = 'center';
+            groupHeader.style.gap = '0.5rem';
+            
+            const isToday = dateKey === todayStr;
+            
+            groupHeader.innerHTML = `
+                <h4 style="color: white; margin: 0; font-size: 1.1rem; font-weight: 600;">📅 ${dateKey}</h4>
+                ${isToday ? '<span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">오늘</span>' : ''}
+            `;
+            handoverListContainer.appendChild(groupHeader);
+            
+            const cardsContainer = document.createElement('div');
+            cardsContainer.style.display = 'flex';
+            cardsContainer.style.flexDirection = 'column';
+            cardsContainer.style.gap = '1rem';
+            
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel';
+                card.style.padding = '1.2rem';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '0.8rem';
+                card.style.position = 'relative';
+                
+                const isChecked = item.checkedBy && item.checkedBy.length > 0;
+                
+                if (!isChecked) {
+                    card.style.border = '1px solid var(--danger)';
+                    card.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.2)';
+                }
+                
+                const checkedByStr = isChecked 
+                    ? `<div style="font-size: 0.85rem; color: #10b981; font-weight: 500;">✅ 확인자: ${item.checkedBy.join(', ')}</div>`
+                    : `<div style="font-size: 0.85rem; color: var(--danger); font-weight: bold; display: flex; align-items: center; gap: 0.3rem;"><span>🔴</span> 아직 아무도 확인하지 않음!</div>`;
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-weight: 600; font-size: 1.05rem; color: ${!isChecked ? 'var(--danger)' : 'white'};">${item.empName}</span>
+                            <span style="font-size: 0.85rem; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${item._timeStr} 작성</span>
+                        </div>
+                        <button class="btn outline-danger btn-sm" onclick="deleteHandover('${item.id}')" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">삭제</button>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 6px; border-left: 3px solid ${!isChecked ? 'var(--danger)' : 'var(--primary)'}; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;">${item.content}</div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                        ${checkedByStr}
+                        <button class="btn ${!isChecked ? 'primary' : 'outline-light'} btn-sm" onclick="checkHandover('${item.id}')" style="font-size: 0.85rem; font-weight: 500;">✅ 확인하기</button>
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+            handoverListContainer.appendChild(cardsContainer);
+        }
+    }
+
     // --- CRUD ---
     async function addEmployee() {
         const name = empNameInput.value.trim();
@@ -1359,6 +1719,8 @@ document.addEventListener('DOMContentLoaded', () => {
         employeeListEl.innerHTML = '';
         scheduleEmpSelect.innerHTML = '<option value="" disabled selected>근무자를 선택하세요</option>';
         if (quickAddEmpSelect) quickAddEmpSelect.innerHTML = '<option value="" disabled selected>근무자를 선택하세요</option>';
+        if (handoverEmpSelect) handoverEmpSelect.innerHTML = '<option value="" disabled selected>작성자 선택</option>';
+        if (handoverCheckEmpSelect) handoverCheckEmpSelect.innerHTML = '<option value="" disabled selected>이름 선택</option>';
         
         const showResigned = showResignedCb.checked;
         
@@ -1388,11 +1750,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.textContent = emp.name;
                 scheduleEmpSelect.appendChild(option);
                 
+                
                 if (quickAddEmpSelect) {
                     const qaOption = document.createElement('option');
                     qaOption.value = emp.id;
                     qaOption.textContent = emp.name;
                     quickAddEmpSelect.appendChild(qaOption);
+                }
+                
+                if (handoverEmpSelect) {
+                    const hoOption = document.createElement('option');
+                    hoOption.value = emp.id;
+                    hoOption.textContent = emp.name;
+                    handoverEmpSelect.appendChild(hoOption);
+                }
+
+                if (handoverCheckEmpSelect) {
+                    const hcOption = document.createElement('option');
+                    hcOption.value = emp.id;
+                    hcOption.textContent = emp.name;
+                    handoverCheckEmpSelect.appendChild(hcOption);
                 }
             }
         });

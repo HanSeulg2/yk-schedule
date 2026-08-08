@@ -1109,7 +1109,8 @@ input:focus, select:focus {
         justify-content: space-between;
     }
     
-    #view-salary-btn, #clear-schedules-btn {
+    #view-salary-btn, #clear-schedules-btn,
+    #view-inventory-btn, #view-rules-btn, #view-handover-btn {
         display: none !important;
     }
 }

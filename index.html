@@ -273,7 +273,7 @@
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">마감 청소 안내</label>
-                            <textarea id="admin-closing-input" rows="8" style="width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white; resize: vertical; line-height: 1.5;" placeholder="마감 청소 안내를 입력하세요..."></textarea>
+                            <textarea id="unique-admin-closing-input" rows="8" style="width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white; resize: vertical; line-height: 1.5;" placeholder="마감 청소 안내를 입력하세요..."></textarea>
                         </div>
                     </div>
 
@@ -345,17 +345,26 @@
                         </div>
                         
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <select id="new-inventory-category" onchange="if(typeof renderInventory === 'function') renderInventory()" style="padding: 0.6rem; border-radius: 4px; border: 1px solid var(--panel-border); background: rgba(0,0,0,0.3); color: white; width: 120px;">
+                                    <option value="all" selected>전체 보기</option>
+                                    <option value="none">구분 없음</option>
+                                </select>
                                 <input type="text" id="new-inventory-name" placeholder="새로운 품목 이름 (예: 연어, 닭가슴살)" style="padding: 0.6rem; border-radius: 4px; border: 1px solid var(--panel-border); background: rgba(0,0,0,0.3); color: white; width: 250px;">
                                 <button id="add-inventory-btn" class="btn primary" style="height: 42px;">품목 추가</button>
+                                <button id="manage-category-btn" class="btn outline-light" style="height: 42px;">구분 관리</button>
                             </div>
-                            <button id="toggle-disposal-btn" class="btn secondary">📄 폐기 보관함 보기</button>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button id="save-all-inventory-btn" class="btn primary" onclick="saveAllInventory()">💾 전체 저장</button>
+                                <button id="toggle-disposal-btn" class="btn secondary">📄 폐기 보관함 보기</button>
+                            </div>
                         </div>
 
                         <div style="overflow-x: auto;">
                             <table class="weekly-table inventory-table" id="inventory-table-container">
                                 <thead>
                                     <tr>
+                                        <th style="width: 120px;">구분</th>
                                         <th style="width: 130px;">품목명</th>
                                         <th style="width: 140px;">수량 / 기준</th>
                                         <th style="width: 110px;">상태</th>
@@ -448,6 +457,27 @@
             </ul>
             
             <button id="close-preset-manage-btn" class="btn outline-light w-full">닫기</button>
+        </div>
+    </div>
+
+    <!-- 재고 구분(카테고리) 관리 모달 -->
+    <div id="category-manage-modal" class="modal-overlay" style="display: none; z-index: 1000;">
+        <div class="modal-content glass-panel" style="max-width: 360px; width: 100%;">
+            <h3 style="margin-top: 0;">재고 구분 관리</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">야채, 소스, 냉동식품 등 재고의 분류를 설정합니다.</p>
+            
+            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                    <input type="text" id="new-category-name" placeholder="새 구분명 (예: 소스)" style="flex: 1; padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
+                    <button id="add-category-btn" class="btn primary">추가</button>
+                </div>
+            </div>
+
+            <ul id="category-list" style="list-style: none; padding: 0; margin: 0 0 1rem 0; max-height: 200px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 8px; background: rgba(0,0,0,0.1);">
+                <!-- 카테고리 렌더링 영역 -->
+            </ul>
+            
+            <button id="close-category-manage-btn" class="btn outline-light w-full">닫기</button>
         </div>
     </div>
 
@@ -723,11 +753,15 @@
         </div>
     </div>
     
+    <!-- Toast Notification Container -->
+    <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+    
     <!-- Firebase Compat Libraries -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="app.js?v=1.14"></script>
+    <!-- App Script -->
+    <script src="app.js?v=1.26"></script>
 </body>
 </html>

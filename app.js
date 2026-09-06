@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let disposalData = {};
     let inventoryCheckData = null;
     let handoverData = [];
+    let localInventoryEdits = {}; // To preserve unsaved changes across renders
     
     const TIMELINE_START = 9;
     const TIMELINE_END = 24; // 09:00 ~ 24:00 (midnight)
@@ -221,14 +222,61 @@ document.addEventListener('DOMContentLoaded', () => {
     const handoverRulesDisplay = document.getElementById('handover-rules-display');
     const handoverClosingDisplay = document.getElementById('handover-closing-display');
     const adminRulesInput = document.getElementById('admin-rules-input');
-    const adminClosingInput = document.getElementById('admin-closing-input');
+    const adminClosingInput = document.getElementById('unique-admin-closing-input');
     const saveRulesBtn = document.getElementById('save-rules-btn');
+
+    const manageCategoryBtn = document.getElementById('manage-category-btn');
+    const categoryManageModal = document.getElementById('category-manage-modal');
+    const closeCategoryManageBtn = document.getElementById('close-category-manage-btn');
+    const newCategoryNameInput = document.getElementById('new-category-name');
+    const addCategoryBtn = document.getElementById('add-category-btn');
+    const categoryListEl = document.getElementById('category-list');
+    const newInventoryCategorySelect = document.getElementById('new-inventory-category');
+    let inventoryCategories = [];
 
     function showConfirm(msg, callback) {
         confirmModalMessage.textContent = msg;
         currentConfirmCallback = callback;
         confirmModal.style.display = 'flex';
     }
+
+    window.showToast = function(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${type === 'success' ? 'var(--primary-color)' : 'var(--danger)'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        `;
+        toast.textContent = message;
+        
+        container.appendChild(toast);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+        });
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }, 3000);
+    };
 
     if (cancelConfirmBtn) {
         cancelConfirmBtn.addEventListener('click', () => {
@@ -385,13 +433,23 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('inventory').onSnapshot(snapshot => {
             inventoryData = {};
             snapshot.forEach(doc => {
-                inventoryData[doc.id] = doc.data();
+                inventoryData[doc.id] = { ...doc.data(), id: doc.id };
             });
             if (viewMode === 'inventory') {
                 renderInventory();
             }
         });
         
+        db.collection('settings').doc('inventoryCategories').onSnapshot(doc => {
+            if (doc.exists && doc.data().list) {
+                inventoryCategories = doc.data().list;
+            } else {
+                inventoryCategories = ['소스', '야채', '냉동식품', '기타']; // 기본 카테고리
+                db.collection('settings').doc('inventoryCategories').set({ list: inventoryCategories });
+            }
+            renderInventoryCategories();
+            if (viewMode === 'inventory') renderInventory();
+        });
         // Disposals
         db.collection('disposals').onSnapshot(snapshot => {
             disposalData = {};
@@ -432,22 +490,16 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('settings').doc('rules').onSnapshot((doc) => {
             let content = '';
             let closing = '';
+            const defaultContent = `영칼로리포케 부산경성대부경대점 기본 규칙\n\n[위생]\n모자 필히 착용 (머리카락 빠지지 않게 착용 필수)\n음식 조리 시 마스크 착용 (매장 내 기본형/투명마스크용 구비)\n맨 손으로 음식 만지지 않기 (비닐장갑 or 니트릴 장갑 착용)\n화장실 이용 시 앞치마 벗고 가기\n\n[복지]\n기본 음료 한잔 제공 ( * 라떼, 단백질음료, 콤부차 제외)\n4시간 미만 근무 시\n- 샌드위치 제공\n4시간 초과 근무 시\n- 한끼 식사 제공\n\n🚫무단 취식 적발 시 알바비 차감🚫`;
+            const defaultClosing = `🪟 홀\n1. 테이블 전체 닦기\n2. 의자 올리기\n3. 홀 바닥 청소\n4. 키오스크 전원 OFF\n5. 홀 물 디스펜서 청소\n6. 영업 마감 후 노트북 전원 OFF\n\n🍳 주방\n1. 식기 및 조리도구 설거지\n2. 작업대 테이블 3개 전체 청소\n3. 화구 청소 및 냉장고 청결 유지\n4. 바닥 청소\n  - 금요일 : 오픈 클리너 사용\n  - 토요일 : 물 청소\n5. 바닥 물기 제거\n\n✅ 마무리\n0. 일요일 오전 근무자에게 인수인계 사항 전달\n1. 싱크대 음식물 배수구 청소\n2. 설거지 구역 청소\n  - 화구 세정제로 기름 제거\n3. 가스 전원 OFF\n4. 일반 쓰레기 압축\n5. 일반/음식물 쓰레기통 초파리 퇴치제 사용\n6. 입구 간판 회수\n7. 캡스 경비 요청`;
+            
             if (doc.exists) {
                 content = doc.data().content || '';
                 closing = doc.data().closing || '';
             } else {
-                content = `영칼로리포케 부산경성대부경대점 기본 규칙\n\n[위생]\n모자 필히 착용 (머리카락 빠지지 않게 착용 필수)\n음식 조리 시 마스크 착용 (매장 내 기본형/투명마스크용 구비)\n맨 손으로 음식 만지지 않기 (비닐장갑 or 니트릴 장갑 착용)\n화장실 이용 시 앞치마 벗고 가기\n\n[복지]\n기본 음료 한잔 제공 ( * 라떼, 단백질음료, 콤부차 제외)\n4시간 미만 근무 시\n- 샌드위치 제공\n4시간 초과 근무 시\n- 한끼 식사 제공\n\n🚫무단 취식 적발 시 알바비 차감🚫`;
-                closing = `📌 마감 청소 안내\n\n🪟 홀\n1. 테이블 전체 닦기\n2. 의자 올리기\n3. 홀 바닥 청소\n4. 키오스크 전원 OFF\n5. 홀 물 디스펜서 청소\n6. 영업 마감 후 노트북 전원 OFF\n\n🍳 주방\n1. 식기 및 조리도구 설거지\n2. 작업대 테이블 3개 전체 청소\n3. 화구 청소 및 냉장고 청결 유지\n4. 바닥 청소\n  - 금요일 : 오픈 클리너 사용\n  - 토요일 : 물 청소\n5. 바닥 물기 제거\n\n✅ 마무리\n0. 일요일 오전 근무자에게 인수인계 사항 전달\n1. 싱크대 음식물 배수구 청소\n2. 설거지 구역 청소\n  - 화구 세정제로 기름 제거\n3. 가스 전원 OFF\n4. 일반 쓰레기 압축\n5. 일반/음식물 쓰레기통 초파리 퇴치제 사용\n6. 입구 간판 회수\n7. 캡스 경비 요청`;
+                content = defaultContent;
+                closing = defaultClosing;
                 db.collection('settings').doc('rules').set({ content, closing });
-            }
-            
-            if (rulesContentDisplay) {
-                let displayHtml = content
-                    .replace(/영칼로리포케 부산경성대부경대점 기본 규칙/g, '<strong style="font-size: 1.1rem; color: var(--primary);">영칼로리포케 부산경성대부경대점 기본 규칙</strong>')
-                    .replace(/\[위생\]/g, '<strong style="color: #10b981;">[위생]</strong>')
-                    .replace(/\[복지\]/g, '<strong style="color: #3b82f6;">[복지]</strong>')
-                    .replace(/🚫무단 취식 적발 시 알바비 차감🚫/g, '<strong style="color: var(--danger);">🚫무단 취식 적발 시 알바비 차감🚫</strong>');
-                rulesContentDisplay.innerHTML = displayHtml;
             }
             if (handoverRulesDisplay) {
                 let displayHtml = content
@@ -463,14 +515,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (handoverClosingDisplay) {
                 let displayClosingHtml = closing
-                    .replace(/📌 마감 청소 안내/g, '<strong style="font-size: 1.1rem; color: #10b981;">📌 마감 청소 안내</strong>')
                     .replace(/🪟 홀/g, '<strong style="color: #3b82f6;">🪟 홀</strong>')
                     .replace(/🍳 주방/g, '<strong style="color: #f59e0b;">🍳 주방</strong>')
                     .replace(/✅ 마무리/g, '<strong style="color: #ec4899;">✅ 마무리</strong>');
                 handoverClosingDisplay.innerHTML = displayClosingHtml;
             }
             if (adminClosingInput && document.activeElement !== adminClosingInput) {
-                adminClosingInput.value = closing;
+                adminClosingInput.value = closing.replace(/^📌 마감 청소 안내\n*/, '');
             }
         });
         
@@ -813,6 +864,32 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBoard();
     });
     
+    const addInventoryBtn = document.getElementById('add-inventory-btn');
+    const newInventoryNameInput = document.getElementById('new-inventory-name');
+    
+    if (addInventoryBtn) {
+        addInventoryBtn.addEventListener('click', async () => {
+            const name = document.getElementById('new-inventory-name').value.trim();
+            const category = document.getElementById('new-inventory-category') ? document.getElementById('new-inventory-category').value : 'none';
+            if (!name) return;
+            try {
+                await db.collection('inventory').add({
+                    name: name,
+                    category: (category === 'none' || category === 'all') ? '' : category,
+                    quantity: 0,
+                    threshold: 0,
+                    isOrdered: false,
+                    status: 'good',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('new-inventory-name').value = '';
+                // Don't reset category filter so they can keep adding to the same category
+            } catch (e) {
+                console.error('Error adding inventory', e);
+            }
+        });
+    }
+
     viewDailyBtn.addEventListener('click', () => setViewMode('daily'));
     viewWeeklyBtn.addEventListener('click', () => setViewMode('weekly'));
     viewMonthlyBtn.addEventListener('click', () => setViewMode('monthly'));
@@ -839,34 +916,6 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordModal.style.display = 'flex';
         salaryPasswordInput.focus();
     });
-    
-    const addInventoryBtn = document.getElementById('add-inventory-btn');
-    const newInventoryNameInput = document.getElementById('new-inventory-name');
-    if (addInventoryBtn && newInventoryNameInput) {
-        addInventoryBtn.addEventListener('click', async () => {
-            const name = newInventoryNameInput.value.trim();
-            if (!name) return;
-            
-            const id = 'inv_' + Date.now();
-            const payload = {
-                id,
-                name,
-                status: 'good',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            addInventoryBtn.disabled = true;
-            try {
-                await db.collection('inventory').doc(id).set(payload);
-                newInventoryNameInput.value = '';
-            } catch(e) {
-                console.error(e);
-                alert('추가 실패');
-            } finally {
-                addInventoryBtn.disabled = false;
-            }
-        });
-    }
 
     if (cancelEditSchedBtn) {
         cancelEditSchedBtn.addEventListener('click', () => {
@@ -1047,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewContainerRules) viewContainerRules.style.display = 'none';
         if (viewContainerDisposal) viewContainerDisposal.style.display = 'none';
         if (viewContainerHandover) viewContainerHandover.style.display = 'none';
-        document.querySelector('.board-controls').style.display = 'flex'; // show board controls by default
+        document.querySelector('.board-controls').style.visibility = 'visible'; // show board controls by default
 
         if (mode === 'daily') {
             viewDailyBtn.classList.add('active');
@@ -1064,23 +1113,23 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mode === 'inventory') {
             viewInventoryBtn.classList.add('active');
             viewContainerInventory.style.display = 'block';
-            document.querySelector('.board-controls').style.display = 'none'; // hide board controls for inventory
+            document.querySelector('.board-controls').style.visibility = 'hidden'; // hide board controls for inventory
             renderInventoryCheckStatus();
             renderInventory(); // Load inventory data
         } else if (mode === 'disposal') {
             viewInventoryBtn.classList.add('active'); // Keep inventory tab highlighted
             if (viewContainerDisposal) viewContainerDisposal.style.display = 'block';
-            document.querySelector('.board-controls').style.display = 'none'; 
+            document.querySelector('.board-controls').style.visibility = 'hidden'; 
             renderInventoryCheckStatus();
             renderDisposalArchive();
         } else if (mode === 'rules') {
             if (viewRulesBtn) viewRulesBtn.classList.add('active');
             if (viewContainerRules) viewContainerRules.style.display = 'block';
-            document.querySelector('.board-controls').style.display = 'none';
+            document.querySelector('.board-controls').style.visibility = 'hidden';
         } else if (mode === 'handover') {
             if (viewHandoverBtn) viewHandoverBtn.classList.add('active');
             if (viewContainerHandover) viewContainerHandover.style.display = 'block';
-            document.querySelector('.board-controls').style.display = 'none'; 
+            document.querySelector('.board-controls').style.visibility = 'hidden'; 
             renderHandovers();
         }
         
@@ -1132,11 +1181,86 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (viewMode === 'salary' && adminMonthlyGrid) {
-            renderAdminCalendar(currentDate);
+                renderAdminCalendar(currentDate);
         }
         scheduleDateInput.value = formatDateString(currentDate);
     }
     
+    // --- Inventory Categories ---
+    if (manageCategoryBtn) {
+        manageCategoryBtn.addEventListener('click', () => {
+            categoryManageModal.style.display = 'flex';
+        });
+    }
+    
+    if (closeCategoryManageBtn) {
+        closeCategoryManageBtn.addEventListener('click', () => {
+            categoryManageModal.style.display = 'none';
+        });
+    }
+    
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener('click', async () => {
+            const name = newCategoryNameInput.value.trim();
+            if (!name) return;
+            if (inventoryCategories.includes(name)) {
+                alert('이미 존재하는 카테고리입니다.');
+                return;
+            }
+            try {
+                await db.collection('settings').doc('inventoryCategories').set({
+                    list: firebase.firestore.FieldValue.arrayUnion(name)
+                }, { merge: true });
+                newCategoryNameInput.value = '';
+            } catch (e) {
+                console.error(e);
+                alert('카테고리 추가 실패');
+            }
+        });
+    }
+    
+    window.deleteInventoryCategory = async function(catName) {
+        showConfirm(`'${catName}' 카테고리를 정말 삭제하시겠습니까?`, async () => {
+            try {
+                await db.collection('settings').doc('inventoryCategories').set({
+                    list: firebase.firestore.FieldValue.arrayRemove(catName)
+                }, { merge: true });
+            } catch (e) {
+                console.error(e);
+                alert('카테고리 삭제 실패');
+            }
+        });
+    };
+
+    function renderInventoryCategories() {
+        if (categoryListEl) {
+            categoryListEl.innerHTML = '';
+            inventoryCategories.forEach(cat => {
+                const li = document.createElement('li');
+                li.style.cssText = 'padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;';
+                li.innerHTML = `
+                    <span>${cat}</span>
+                    <button class="btn text" style="color: var(--danger); padding: 0.2rem 0.5rem;" onclick="deleteInventoryCategory('${cat}')">삭제</button>
+                `;
+                categoryListEl.appendChild(li);
+            });
+        }
+        
+        if (newInventoryCategorySelect) {
+            const prevValue = newInventoryCategorySelect.value;
+            newInventoryCategorySelect.innerHTML = '<option value="all" selected>전체 보기</option><option value="none">구분 없음</option>';
+            inventoryCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                newInventoryCategorySelect.appendChild(opt);
+            });
+            if (prevValue && (inventoryCategories.includes(prevValue) || prevValue === 'none' || prevValue === 'all')) {
+                newInventoryCategorySelect.value = prevValue;
+            }
+        }
+    }
+
     // --- Inventory Management ---
     window.recalcInventoryStatus = function(id) {
         const row = document.getElementById(`inv-row-${id}`);
@@ -1148,10 +1272,83 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isOrdered) {
             badgeContainer.innerHTML = `<span class="status-badge status-ordered">배송 중<br>🚚</span>`;
-        } else if (qty <= thres) {
+        } else if (qty < thres) {
             badgeContainer.innerHTML = `<span class="status-badge status-danger">부족<br>(발주요망)</span>`;
         } else {
             badgeContainer.innerHTML = `<span class="status-badge status-good">충분<br>(여유)</span>`;
+        }
+    };
+    
+    window.updateLocalEdit = function(id, field, value, isCheckbox = false) {
+        if (!localInventoryEdits[id]) localInventoryEdits[id] = {};
+        localInventoryEdits[id][field] = value;
+        if (field === 'quantity' || field === 'threshold' || field === 'isOrdered') {
+            recalcInventoryStatus(id);
+        }
+    };
+
+    window.saveAllInventory = async function() {
+        const ids = Object.keys(localInventoryEdits);
+        if (ids.length === 0) {
+            alert('저장할 변경사항이 없습니다.');
+            return;
+        }
+        const saveAllBtn = document.getElementById('save-all-inventory-btn');
+        if(saveAllBtn) {
+            saveAllBtn.textContent = '저장 중...';
+            saveAllBtn.disabled = true;
+        }
+        
+        const batch = db.batch();
+        ids.forEach(id => {
+            const data = inventoryData[id] || { name: '알 수 없음' };
+            const edits = localInventoryEdits[id];
+            
+            const newName = edits.name !== undefined ? edits.name : (data.name || '');
+            const newCategory = edits.category !== undefined ? edits.category : (data.category || '');
+            const qty = edits.quantity !== undefined ? edits.quantity : (data.quantity || 0);
+            const thres = edits.threshold !== undefined ? edits.threshold : (data.threshold || 0);
+            const isOrdered = edits.isOrdered !== undefined ? edits.isOrdered : (data.isOrdered || false);
+            
+            let status = 'good';
+            if (isOrdered) status = 'ordered';
+            else if (qty < thres) status = 'danger';
+
+            const payload = {
+                name: newName,
+                category: newCategory === 'none' ? '' : newCategory,
+                quantity: qty,
+                threshold: thres,
+                isOrdered: isOrdered,
+                status: status,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (edits.receivedDate !== undefined) payload.receivedDate = edits.receivedDate;
+            if (edits.openedDate !== undefined) payload.openedDate = edits.openedDate;
+            if (edits.actionDate !== undefined) payload.actionDate = edits.actionDate;
+            if (edits.memo !== undefined) payload.memo = edits.memo;
+
+            batch.set(db.collection('inventory').doc(id), payload, { merge: true });
+        });
+        
+        try {
+            await batch.commit();
+            localInventoryEdits = {}; // Clear all local edits
+            showToast('✅ 전체 재고가 성공적으로 저장되었습니다!');
+            if(saveAllBtn) {
+                saveAllBtn.textContent = '일괄 저장 ✓';
+                setTimeout(() => {
+                    saveAllBtn.textContent = '💾 변경사항 일괄 저장';
+                    saveAllBtn.disabled = false;
+                }, 2000);
+            }
+        } catch (e) {
+            console.error('Error saving all inventory', e);
+            alert('일괄 저장에 실패했습니다.');
+            if(saveAllBtn) {
+                saveAllBtn.textContent = '💾 변경사항 일괄 저장';
+                saveAllBtn.disabled = false;
+            }
         }
     };
 
@@ -1166,17 +1363,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = inventoryData[id] || { name: '알 수 없음' };
         
+        const newName = row.querySelector('.inv-name') ? row.querySelector('.inv-name').value.trim() || data.name : data.name;
+        const catSelect = row.querySelector('.inv-category');
+        const newCategory = catSelect ? (catSelect.value === 'none' ? '' : catSelect.value) : (data.category || '');
+        
         const qty = parseInt(row.querySelector('.inv-qty').value) || 0;
         const thres = parseInt(row.querySelector('.inv-threshold').value) || 0;
         const isOrdered = row.querySelector('.inv-ordered').checked;
         
         let status = 'good';
         if (isOrdered) status = 'ordered';
-        else if (qty <= thres) status = 'danger';
+        else if (qty < thres) status = 'danger';
 
         const payload = {
             id: id,
-            name: data.name,
+            name: newName,
+            category: newCategory,
             quantity: qty,
             threshold: thres,
             isOrdered: isOrdered,
@@ -1188,8 +1390,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
+        // Alert removed
         try {
             await db.collection('inventory').doc(id).set(payload, { merge: true });
+            delete localInventoryEdits[id]; // Clear local edit for this item
+            showToast(`✅ ${newName} 품목이 저장되었습니다!`);
             btn.textContent = '저장됨 ✓';
             setTimeout(() => {
                 btn.textContent = originalText;
@@ -1348,6 +1553,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (newInventoryCategorySelect) {
+        newInventoryCategorySelect.addEventListener('change', renderInventory);
+    }
+
     function renderInventory() {
         if (!inventoryTbody) return;
         inventoryTbody.innerHTML = '';
@@ -1358,7 +1567,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<span class="status-badge status-good">충분<br>(여유)</span>`;
         };
         
-        const items = Object.values(inventoryData).sort((a, b) => {
+        const categoryFilter = document.getElementById('new-inventory-category') ? document.getElementById('new-inventory-category').value : 'all';
+        
+        const items = Object.values(inventoryData).filter(data => {
+            if (categoryFilter === 'all') return true;
+            if (categoryFilter === 'none') return !data.category || data.category === '';
+            return data.category === categoryFilter;
+        }).sort((a, b) => {
+            const catA = a.category || 'zzz'; // push no category to bottom
+            const catB = b.category || 'zzz';
+            if (catA < catB) return -1;
+            if (catA > catB) return 1;
+            
             if (a.createdAt && b.createdAt) return a.createdAt.toMillis() - b.createdAt.toMillis();
             return a.name.localeCompare(b.name);
         });
@@ -1366,31 +1586,50 @@ document.addEventListener('DOMContentLoaded', () => {
         items.forEach(data => {
             const tr = document.createElement('tr');
             tr.id = `inv-row-${data.id}`;
-            const qty = data.quantity || 0;
-            const thres = data.threshold || 0;
-            const isOrdered = data.isOrdered ? 'checked' : '';
+            
+            // Merge with local edits if any
+            const edits = localInventoryEdits[data.id] || {};
+            const merged = { ...data, ...edits };
+            
+            const qty = merged.quantity || 0;
+            const thres = merged.threshold || 0;
+            const isOrdered = merged.isOrdered ? 'checked' : '';
+            
+            let currentStatus = 'good';
+            if (merged.isOrdered) currentStatus = 'ordered';
+            else if (qty < thres) currentStatus = 'danger';
+            
+            let catOptions = `<option value="none">구분 없음</option>`;
+            inventoryCategories.forEach(cat => {
+                const selected = merged.category === cat ? 'selected' : '';
+                catOptions += `<option value="${cat}" ${selected}>${cat}</option>`;
+            });
+            const catSelect = `<select class="inv-category" onchange="updateLocalEdit('${data.id}', 'category', this.value)" style="padding: 0.4rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; width: 100%; font-size: 0.85rem;">${catOptions}</select>`;
             
             tr.innerHTML = `
-                <td style="font-weight: 600; text-align: left; padding-left: 1rem;">${data.name}</td>
+                <td>${catSelect}</td>
+                <td style="text-align: left; padding-left: 0.5rem; padding-right: 0.5rem;">
+                    <input type="text" class="inv-name" value="${merged.name}" oninput="updateLocalEdit('${data.id}', 'name', this.value)" style="padding: 0.4rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; width: 100%; font-weight: 600; font-size: 0.95rem;">
+                </td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                        <input type="number" class="inv-qty inv-qty-input" value="${qty}" min="0" oninput="recalcInventoryStatus('${data.id}')">
+                        <input type="number" class="inv-qty inv-qty-input" value="${qty}" min="0" oninput="updateLocalEdit('${data.id}', 'quantity', parseInt(this.value)||0)">
                         <span style="color: var(--text-muted);">/</span>
-                        <input type="number" class="inv-threshold inv-qty-input" value="${thres}" min="0" oninput="recalcInventoryStatus('${data.id}')" title="경고 기준 수량">
+                        <input type="number" class="inv-threshold inv-qty-input" value="${thres}" min="0" oninput="updateLocalEdit('${data.id}', 'threshold', parseInt(this.value)||0)" title="경고 기준 수량">
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
-                        <div class="inv-badge-container">${getStatusHtml(data.status)}</div>
+                        <div class="inv-badge-container">${getStatusHtml(currentStatus)}</div>
                         <label style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;">
-                            <input type="checkbox" class="inv-ordered" onchange="recalcInventoryStatus('${data.id}')" ${isOrdered}> 발주 완료
+                            <input type="checkbox" class="inv-ordered" onchange="updateLocalEdit('${data.id}', 'isOrdered', this.checked)" ${isOrdered}> 발주 완료
                         </label>
                     </div>
                 </td>
-                <td><input type="date" class="inv-received" value="${data.receivedDate || ''}"></td>
-                <td><input type="date" class="inv-opened" value="${data.openedDate || ''}"></td>
-                <td><input type="date" class="inv-action" value="${data.actionDate || ''}"></td>
-                <td><input type="text" class="inv-memo" value="${data.memo || ''}" placeholder="메모 (사유 등)"></td>
+                <td><input type="date" class="inv-received" value="${merged.receivedDate || ''}" onchange="updateLocalEdit('${data.id}', 'receivedDate', this.value)"></td>
+                <td><input type="date" class="inv-opened" value="${merged.openedDate || ''}" onchange="updateLocalEdit('${data.id}', 'openedDate', this.value)"></td>
+                <td><input type="date" class="inv-action" value="${merged.actionDate || ''}" onchange="updateLocalEdit('${data.id}', 'actionDate', this.value)"></td>
+                <td><input type="text" class="inv-memo" value="${merged.memo || ''}" placeholder="메모 (사유 등)" oninput="updateLocalEdit('${data.id}', 'memo', this.value)"></td>
                 <td>
                     <div style="display: flex; gap: 0.2rem; justify-content: center; margin-bottom: 0.3rem;">
                         <button class="btn primary btn-sm save-inv-btn" onclick="saveInventoryItem('${data.id}')">저장</button>
@@ -1493,14 +1732,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveRulesBtn.addEventListener('click', async () => {
             saveRulesBtn.textContent = '저장 중...';
             try {
+                const updatedContent = document.getElementById('admin-rules-input').value;
+                const updatedClosing = document.getElementById('unique-admin-closing-input').value;
+                
                 await db.collection('settings').doc('rules').set({ 
-                    content: adminRulesInput.value,
-                    closing: adminClosingInput.value
-                });
-                alert('매장 매뉴얼이 저장되었습니다.');
+                    content: updatedContent,
+                    closing: updatedClosing
+                }, { merge: true });
+                
+                showToast(`✅ 매장 매뉴얼 저장됨! (기본: ${updatedContent.length}자, 마감: ${updatedClosing.length}자)`);
             } catch (e) {
                 console.error(e);
-                alert('저장 실패');
+                alert('저장 실패: ' + e.message);
             } finally {
                 saveRulesBtn.textContent = '저장';
             }

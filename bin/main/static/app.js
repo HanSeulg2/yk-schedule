@@ -2222,8 +2222,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTimeline(dateStr) {
         timelineGrid.innerHTML = '';
+        const mobileList = document.getElementById('mobile-daily-list');
+        if (mobileList) mobileList.innerHTML = '';
+
         if (employees.length === 0) {
-            timelineGrid.innerHTML = '<div class="empty-state"><p>등록된 근무자가 없습니다.</p></div>'; return;
+            timelineGrid.innerHTML = '<div class="empty-state"><p>등록된 근무자가 없습니다.</p></div>'; 
+            if (mobileList) mobileList.innerHTML = '<div class="empty-state"><p>등록된 근무자가 없습니다.</p></div>';
+            return;
         }
 
         const dailySchedules = schedules.filter(s => s.date === dateStr);
@@ -2267,12 +2272,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const block = createScheduleBlock(sched, sH, sM, eH, eM);
                 if (block) lane.appendChild(block);
+                
+                // Render mobile card
+                if (mobileList) {
+                    const card = document.createElement('div');
+                    card.className = 'mobile-schedule-card';
+                    card.style.setProperty('--item-color', sched.color1);
+                    
+                    const diff = (eH - sH) + (eM - sM)/60;
+                    
+                    card.innerHTML = `
+                        <div>
+                            <div class="emp-name">${sched.empName}</div>
+                            <div class="duration">${diff}시간 근무</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>
+                        </div>
+                    `;
+                    mobileList.appendChild(card);
+                }
             });
             timelineGrid.appendChild(lane);
         });
         
         if (!hasSchedules) {
             timelineGrid.insertAdjacentHTML('beforeend', `<div class="empty-state" style="position:absolute;width:100%;pointer-events:none"><p>${dateStr} 스케줄 없음.</p></div>`);
+            if (mobileList) mobileList.innerHTML = `<div class="empty-state"><p>${dateStr} 스케줄 없음.</p></div>`;
         }
     }
     

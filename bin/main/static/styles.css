@@ -1174,10 +1174,10 @@ input:focus, select:focus {
         font-size: 0.65rem; 
     }
     .monthly-grid {
-        grid-auto-rows: minmax(70px, auto); 
+        grid-auto-rows: minmax(45px, auto); 
     }
     .monthly-day {
-        padding: 0.2rem;
+        padding: 0.1rem;
         gap: 0.2rem;
         flex-direction: row;
         flex-wrap: wrap;
@@ -1186,16 +1186,18 @@ input:focus, select:focus {
     }
     .monthly-day-number {
         font-size: 0.75rem;
-        margin-bottom: 0.1rem;
+        margin-bottom: 0;
         width: 100%; /* force to top */
-        height: 22px;
+        height: 18px;
     }
     .monthly-day.today .monthly-day-number {
-        width: 22px;
+        width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
     }
     .monthly-schedule-item {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         padding: 0;
         margin: 0 1px;
@@ -1203,6 +1205,12 @@ input:focus, select:focus {
         font-size: 0;
         box-shadow: none;
         flex-shrink: 0;
+    }
+    .mobile-monthly-detail {
+        min-height: 200px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 0.5rem;
+        margin-top: 0.5rem !important;
     }
 
     /* 관리자 메뉴 모바일 뷰 */

@@ -2577,6 +2577,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             monthlyGrid.appendChild(cell);
         }
+
+        // On mobile, auto-select today (or the 1st of the month if today is not in view)
+        if (window.innerWidth <= 768) {
+            let targetCell = monthlyGrid.querySelector('.monthly-day.today');
+            if (!targetCell) {
+                // If today is not in this month, select the 1st day of the month
+                targetCell = Array.from(monthlyGrid.querySelectorAll('.monthly-day')).find(c => !c.classList.contains('other-month'));
+            }
+            if (targetCell) {
+                targetCell.click();
+            } else {
+                document.getElementById('mobile-monthly-detail').style.display = 'none';
+            }
+        } else {
+            document.getElementById('mobile-monthly-detail').style.display = 'none';
+        }
     }
     
     function showMobileMonthlyDetail(dateStr, dayScheds) {

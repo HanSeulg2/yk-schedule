@@ -1188,6 +1188,9 @@ input:focus, select:focus {
         flex-direction: column !important;
         align-items: stretch !important;
     }
+    .time-separator {
+        display: none !important;
+    }
     
     .admin-left-col button.btn, .admin-header-buttons button.btn {
         width: 100%;

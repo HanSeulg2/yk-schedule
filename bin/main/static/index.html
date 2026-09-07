@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=1.24">
+    <link rel="stylesheet" href="styles.css?v=1.25">
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -455,9 +455,9 @@
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <input type="text" id="new-preset-name" placeholder="프리셋 이름 (예: 오전파트)" style="padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; width: 100%;">
                     
-                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                    <div class="input-row" style="display: flex; gap: 0.5rem; align-items: stretch;">
                         <input type="time" id="new-preset-start" value="09:00" style="flex: 1; padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
-                        <span style="display: flex; align-items: center;">~</span>
+                        <span class="time-separator" style="display: flex; align-items: center;">~</span>
                         <input type="time" id="new-preset-end" value="14:00" style="flex: 1; padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
                     </div>
 
@@ -651,9 +651,9 @@
                 <select id="quick-add-preset" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white; margin-bottom: 0.5rem;">
                     <option value="">직접 입력</option>
                 </select>
-                <div style="display: flex; gap: 0.5rem;">
+                <div class="input-row" style="display: flex; gap: 0.5rem;">
                     <input type="time" id="quick-add-start" value="09:00" style="flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
-                    <span style="display:flex; align-items:center; color:white;">~</span>
+                    <span class="time-separator" style="display:flex; align-items:center; color:white;">~</span>
                     <input type="time" id="quick-add-end" value="14:00" style="flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
                 </div>
             </div>

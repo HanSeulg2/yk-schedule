@@ -3365,17 +3365,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSidebarBtn = document.getElementById('close-sidebar-btn');
     const viewToggles = document.querySelector('.view-toggles');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const boardHeader = document.querySelector('.board-header');
     
     function closeMobileSidebar() {
         if(viewToggles) viewToggles.classList.remove('open');
         if(sidebarOverlay) sidebarOverlay.style.display = 'none';
         document.body.style.overflow = '';
+        
+        // 애니메이션(0.3s) 후 원래 위치로 복귀시켜 데스크탑 레이아웃 꼬임 방지
+        setTimeout(() => {
+            if (window.innerWidth <= 1024 && viewToggles && boardHeader) {
+                // 모바일일때만 복귀? 아니 항상 원래자리로
+                boardHeader.appendChild(viewToggles);
+            }
+        }, 300);
     }
     
     function openMobileSidebar() {
-        if(viewToggles) viewToggles.classList.add('open');
-        if(sidebarOverlay) sidebarOverlay.style.display = 'block';
-        document.body.style.overflow = 'hidden';
+        // 모바일에서 stacking context(z-index)나 overflow: hidden에 갇히지 않도록 body 최상단으로 이동!
+        if(viewToggles) document.body.appendChild(viewToggles);
+        
+        // 약간의 딜레이 후 클래스 추가 (DOM 이동 후 transition 적용을 위해)
+        requestAnimationFrame(() => {
+            if(viewToggles) viewToggles.classList.add('open');
+            if(sidebarOverlay) sidebarOverlay.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        });
     }
 
     if (mobileMenuBtn) {
@@ -3395,8 +3410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const navBtns = viewToggles.querySelectorAll('.btn');
         navBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                // 모바일 환경일 때만 닫기
-                if (window.innerWidth <= 768) {
+                if (window.innerWidth <= 1024) {
                     closeMobileSidebar();
                 }
             });

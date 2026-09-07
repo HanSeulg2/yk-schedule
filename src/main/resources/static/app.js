@@ -1165,13 +1165,13 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDailyHandover(dateStr);
         } else if (viewMode === 'weekly') {
             const weekDates = getWeekDates(currentDate);
-            const targetDate = weekDates[0]; // 월요일을 기준으로 주차 계산
-            const yearStr = String(targetDate.getFullYear()).slice(2);
-            const month = targetDate.getMonth() + 1;
+            // 한국/국제 표준(ISO 8601) 기준: 해당 주의 목요일이 속한 월을 기준으로 주차를 계산
+            const thursday = weekDates[3]; 
+            const yearStr = String(thursday.getFullYear()).slice(2);
+            const month = thursday.getMonth() + 1;
             
-            // 월의 첫 날 요일을 기준으로 주차 계산
-            const firstDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).getDay();
-            const weekOfMonth = Math.ceil((targetDate.getDate() + firstDay) / 7);
+            // 목요일의 날짜(1~31)를 7로 나누어 올림하면 정확한 주차가 나옴
+            const weekOfMonth = Math.floor((thursday.getDate() - 1) / 7) + 1;
             
             boardDateDisplay.textContent = `${yearStr}년 ${month}월 ${weekOfMonth}주차`;
             renderWeeklyTable(weekDates);

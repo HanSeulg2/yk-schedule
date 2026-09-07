@@ -2336,8 +2336,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderWeeklyTable(weekDates) {
         weeklyThead.innerHTML = '';
         weeklyTbody.innerHTML = '';
+        
+        const mobileList = document.getElementById('mobile-weekly-list');
+        if (mobileList) mobileList.innerHTML = '';
+
         if (employees.length === 0) {
-            weeklyTbody.innerHTML = '<tr><td colspan="8" class="empty-state">등록된 근무자가 없습니다.</td></tr>'; return;
+            weeklyTbody.innerHTML = '<tr><td colspan="8" class="empty-state">등록된 근무자가 없습니다.</td></tr>'; 
+            if (mobileList) mobileList.innerHTML = '<div class="empty-state">등록된 근무자가 없습니다.</div>';
+            return;
         }
 
         const trHeader = document.createElement('tr');
@@ -2372,6 +2378,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return 0;
         });
 
+        // Desktop / Tablet 렌더링
         sortedEmployees.forEach(emp => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td class="emp-name-col" style="border-left: 4px solid ${emp.color1}">${emp.name}</td>`;
@@ -2404,6 +2411,68 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             weeklyTbody.appendChild(tr);
         });
+
+        // Mobile 렌더링 (날짜별로 그룹화하여 세로 리스트 출력)
+        if (mobileList) {
+            weekDates.forEach(date => {
+                const dStr = formatDateString(date);
+                const dayScheds = weeklySchedules.filter(s => s.date === dStr).sort((a,b) => a.start.localeCompare(b.start));
+                
+                const isToday = dStr === todayStr;
+                const dayHeader = document.createElement('div');
+                dayHeader.style.marginTop = '1.5rem';
+                dayHeader.style.marginBottom = '0.8rem';
+                dayHeader.style.display = 'flex';
+                dayHeader.style.alignItems = 'center';
+                dayHeader.style.gap = '0.5rem';
+                
+                dayHeader.innerHTML = `
+                    <h4 style="color: ${isToday ? 'var(--primary)' : 'white'}; margin: 0; font-size: 1.1rem; font-weight: 600;">📅 ${dStr} (${getDayName(date)})</h4>
+                    ${isToday ? '<span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">오늘</span>' : ''}
+                `;
+                mobileList.appendChild(dayHeader);
+
+                if (dayScheds.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-state';
+                    empty.style.position = 'static';
+                    empty.style.padding = '1rem';
+                    empty.style.background = 'rgba(0,0,0,0.2)';
+                    empty.innerHTML = '일정 없음';
+                    mobileList.appendChild(empty);
+                } else {
+                    const cardsContainer = document.createElement('div');
+                    cardsContainer.style.display = 'flex';
+                    cardsContainer.style.flexDirection = 'column';
+                    cardsContainer.style.gap = '0.8rem';
+
+                    dayScheds.forEach(sched => {
+                        const card = document.createElement('div');
+                        card.className = 'mobile-schedule-card';
+                        card.style.setProperty('--item-color', sched.color1);
+                        
+                        const sH = parseInt(sched.start.split(':')[0]);
+                        const sM = parseInt(sched.start.split(':')[1]);
+                        let eH = parseInt(sched.end.split(':')[0]);
+                        const eM = parseInt(sched.end.split(':')[1]);
+                        if (eH < sH || (eH === sH && eM < sM)) eH += 24;
+                        const diff = (eH - sH) + (eM - sM)/60;
+                        
+                        card.innerHTML = `
+                            <div>
+                                <div class="emp-name">${sched.empName}</div>
+                                <div class="duration">${diff}시간 근무</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>
+                            </div>
+                        `;
+                        cardsContainer.appendChild(card);
+                    });
+                    mobileList.appendChild(cardsContainer);
+                }
+            });
+        }
     }
 
     function renderMonthlyCalendar(baseDate) {

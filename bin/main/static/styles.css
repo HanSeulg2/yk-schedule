@@ -1112,6 +1112,32 @@ input:focus, select:focus {
         width: 120px;
     }
 
+    .stats-chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .admin-header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 1rem;
+    }
+
+    .admin-header-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .stats-summary-flex {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
     /* 반응형 레이아웃 */
     @media (max-width: 1024px) {
     .admin-top-layout {
@@ -1201,6 +1227,8 @@ input:focus, select:focus {
     }
     .stats-chart-grid {
         grid-template-columns: 1fr;
+        gap: 3.5rem;
+        margin-bottom: 2.5rem;
     }
     
     .input-row {

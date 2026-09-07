@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=1.22">
+    <link rel="stylesheet" href="styles.css?v=1.23">
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -152,12 +152,12 @@
                                 </select>
                             </div>
                             
-                            <div class="time-inputs" style="margin: 0; display: flex; gap: 0.5rem;">
-                                <div class="form-group" style="margin: 0; min-width: 100px;">
+                            <div class="time-inputs-container" style="margin: 0; width: 100%;">
+                                <div class="form-group" style="margin: 0;">
                                     <label>시작 시간</label>
                                     <input type="time" id="start-time" value="09:00" step="300">
                                 </div>
-                                <div class="form-group" style="margin: 0; min-width: 100px;">
+                                <div class="form-group" style="margin: 0;">
                                     <label>종료 시간</label>
                                     <input type="time" id="end-time" value="14:00" step="300">
                                 </div>
@@ -216,14 +216,14 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div class="admin-header-flex">
                         <div>
                             <h3 style="color: white; margin: 0;">이번 달 급여 예상 내역</h3>
                             <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; margin-top: 0.2rem;">※ 근로기준법 적용 (휴게시간 자동차감, 주 15시간 이상 주휴수당 포함)</p>
                         </div>
-                        <div>
-                            <button id="export-excel-btn" class="btn accent btn-sm" style="margin-right: 0.5rem;">엑셀 다운로드 📥</button>
-                            <button id="open-default-wage-btn" class="btn outline-light btn-sm" style="margin-right: 0.5rem;">기본 시급 변경</button>
+                        <div class="admin-header-buttons">
+                            <button id="export-excel-btn" class="btn accent btn-sm">엑셀 다운로드 📥</button>
+                            <button id="open-default-wage-btn" class="btn outline-light btn-sm">기본 시급 변경</button>
                             <button id="open-change-pw-btn" class="btn outline-light btn-sm">비밀번호 변경</button>
                         </div>
                     </div>
@@ -250,21 +250,21 @@
                         <h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
                             📊 알바생 급여 지출 통계 현황
                         </h4>
-                        <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: baseline;">
+                        <div class="stats-summary-flex">
                             <div>
                                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">이번 달 총 지출 예상액</div>
                                 <div id="stats-current-total" style="font-size: 1.8rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px;">0원</div>
                             </div>
-                            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                            <div class="stats-border-left">
                                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">전월 대비 증감률</div>
                                 <div id="stats-compare-text" style="font-size: 1.2rem; font-weight: 600;">-</div>
                             </div>
-                            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                            <div class="stats-border-left">
                                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">절감된 인건비 (가족/관리자)</div>
                                 <div id="stats-saved-total" style="font-size: 1.2rem; font-weight: 600; color: #10b981;">0원</div>
                             </div>
                         </div>
-                        <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        <div class="stats-chart-grid">
                             <div style="position: relative; height: 250px; width: 100%;">
                                 <h5 style="color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; font-size: 0.95rem;">📈 최근 6개월 인건비 흐름</h5>
                                 <canvas id="salaryChart"></canvas>

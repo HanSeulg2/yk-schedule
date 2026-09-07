@@ -3359,4 +3359,48 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `${year}년_${month}월_급여대장_YKS.xlsx`);
         });
     }
+
+    // 모바일 사이드바 메뉴 로직
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+    const viewToggles = document.querySelector('.view-toggles');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    function closeMobileSidebar() {
+        if(viewToggles) viewToggles.classList.remove('open');
+        if(sidebarOverlay) sidebarOverlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    function openMobileSidebar() {
+        if(viewToggles) viewToggles.classList.add('open');
+        if(sidebarOverlay) sidebarOverlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', openMobileSidebar);
+    }
+    
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', closeMobileSidebar);
+    }
+    
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeMobileSidebar);
+    }
+    
+    // 모바일 사이드바 안의 메뉴 버튼을 클릭하면 창이 닫히도록 설정
+    if (viewToggles) {
+        const navBtns = viewToggles.querySelectorAll('.btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 모바일 환경일 때만 닫기
+                if (window.innerWidth <= 768) {
+                    closeMobileSidebar();
+                }
+            });
+        });
+    }
+
 });

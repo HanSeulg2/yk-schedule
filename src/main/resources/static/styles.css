@@ -1254,26 +1254,58 @@ input:focus, select:focus {
         font-size: 1rem;
     }
 
-    /* 2. 상단 탭 메뉴 슬라이드(가로 스크롤) 적용 */
+    /* 2. 상단 탭 메뉴 -> 사이드바 햄버거 메뉴로 변경 */
+    .mobile-only {
+        display: block !important;
+    }
+    .mobile-sidebar-header {
+        display: flex !important;
+    }
     .view-toggles {
-        display: flex;
-        width: 100%;
-        overflow-x: auto;
-        gap: 0.5rem;
-        padding-bottom: 0.5rem;
-        -webkit-overflow-scrolling: touch; /* 부드러운 스크롤 */
+        position: fixed;
+        top: 0;
+        right: -280px; /* 처음엔 숨김 */
+        width: 250px;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        padding: 1.5rem;
+        z-index: 10000;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -5px 0 25px rgba(0,0,0,0.5);
     }
     
-    /* 스크롤바 숨기기 (깔끔하게) */
-    .view-toggles::-webkit-scrollbar {
-        display: none;
+    .view-toggles.open {
+        right: 0;
     }
 
     .view-toggles .btn {
-        flex-shrink: 0; /* 글자가 안 찌그러지게 고정 */
         margin-left: 0 !important;
-        font-size: 0.85rem;
-        padding: 0.4rem 0.8rem;
+        margin-bottom: 0.8rem;
+        text-align: left;
+        padding: 1rem 1.2rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .view-toggles .btn::after {
+        content: "›";
+        font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+    
+    .view-toggles .btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
     }
 
     /* 3. 테이블 및 그리드 압축 (한눈에 보기) */

@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=1.27">
+    <link rel="stylesheet" href="styles.css?v=1.28">
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -37,6 +37,9 @@
             </div>
         </header>
 
+        <!-- 사이드바 오버레이 -->
+        <div id="sidebar-overlay" class="modal-overlay" style="display: none; z-index: 9999; background: rgba(0,0,0,0.5);"></div>
+
         <main>
             <div class="layout-grid">
 
@@ -49,9 +52,14 @@
                         <h2 id="board-date-display">오늘의 스케줄</h2>
                         <button id="next-date-btn" class="btn outline-light btn-sm">&gt;</button>
                         <button id="today-btn" class="btn outline-light btn-sm ml-2">오늘</button>
+                        <button id="mobile-menu-btn" class="mobile-only" style="display: none; background: transparent; border: none; font-size: 1.5rem; color: white; cursor: pointer; padding: 0.2rem 0.5rem; margin-left: auto;">☰</button>
                     </div>
                     
                     <div class="view-toggles">
+                        <div class="mobile-sidebar-header" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                            <h3 style="margin: 0; color: white;">메뉴</h3>
+                            <button id="close-sidebar-btn" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                        </div>
                         <button id="view-daily-btn" class="btn primary btn-sm active">일간 타임라인</button>
                         <button id="view-weekly-btn" class="btn btn-sm">주간 표</button>
                         <button id="view-monthly-btn" class="btn btn-sm">월간 달력</button>
@@ -779,7 +787,7 @@
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- App Script -->
-    <script src="app.js?v=1.36"></script>
+    <script src="app.js?v=1.37"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

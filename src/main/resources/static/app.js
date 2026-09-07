@@ -1060,6 +1060,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Helpers
+    const publicHolidays = [
+        '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18', '2026-03-01', '2026-05-05', '2026-05-24', '2026-06-06', '2026-08-15', '2026-09-24', '2026-09-25', '2026-09-26', '2026-10-03', '2026-10-09', '2026-12-25',
+        '2027-01-01', '2027-02-06', '2027-02-07', '2027-02-08', '2027-03-01', '2027-05-05', '2027-05-13', '2027-06-06', '2027-08-15', '2027-09-14', '2027-09-15', '2027-09-16', '2027-10-03', '2027-10-09', '2027-12-25'
+    ];
+
+    function isPublicHoliday(dateStr) {
+        return publicHolidays.includes(dateStr);
+    }
+
     function formatDateString(date) {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
@@ -2355,11 +2364,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const trHeader = document.createElement('tr');
         trHeader.innerHTML = '<th>근무자</th>';
         const todayStr = formatDateString(new Date());
-
-        weekDates.forEach(date => {
-            const dStr = formatDateString(date);
-            const cls = dStr === todayStr ? 'class="today-header"' : '';
-            trHeader.insertAdjacentHTML('beforeend', `<th ${cls}><div>${getDayName(date)}</div><div style="font-size:0.8rem;margin-top:0.2rem;">${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')}</div></th>`);
+        
+        weekDates.forEach(d => {
+            const dateStr = formatDateString(d);
+            const isToday = dateStr === todayStr;
+            const th = document.createElement('th');
+            if (isToday) th.classList.add('today-header');
+            
+            let dateColor = '';
+            if (d.getDay() === 0 || isPublicHoliday(dateStr)) dateColor = 'color: #ef4444;';
+            else if (d.getDay() === 6) dateColor = 'color: #3b82f6;';
+            
+            th.innerHTML = `<div style="${dateColor}">${getDayName(d)}</div><div style="font-size:0.8rem;margin-top:0.2rem;">${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}</div>`;
+            trHeader.appendChild(th);
         });
         weeklyThead.appendChild(trHeader);
 
@@ -2425,6 +2442,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dayScheds = weeklySchedules.filter(s => s.date === dStr).sort((a,b) => a.start.localeCompare(b.start));
                 
                 const isToday = dStr === todayStr;
+                
+                let titleColor = isToday ? 'var(--primary)' : 'white';
+                if (!isToday && (date.getDay() === 0 || isPublicHoliday(dStr))) titleColor = '#ef4444';
+                else if (!isToday && date.getDay() === 6) titleColor = '#3b82f6';
+
                 const dayHeader = document.createElement('div');
                 dayHeader.style.marginTop = '1.5rem';
                 dayHeader.style.marginBottom = '0.8rem';
@@ -2433,7 +2455,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dayHeader.style.gap = '0.5rem';
                 
                 dayHeader.innerHTML = `
-                    <h4 style="color: ${isToday ? 'var(--primary)' : 'white'}; margin: 0; font-size: 1.1rem; font-weight: 600;">📅 ${dStr} (${getDayName(date)})</h4>
+                    <h4 style="color: ${titleColor}; margin: 0; font-size: 1.1rem; font-weight: 600;">📅 ${dStr} (${getDayName(date)})</h4>
                     ${isToday ? '<span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">오늘</span>' : ''}
                 `;
                 mobileList.appendChild(dayHeader);
@@ -2503,7 +2525,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isCurrentMonth) cell.classList.add('other-month');
             if (dateStr === todayStr) cell.classList.add('today');
             
-            cell.innerHTML = `<div class="monthly-day-number">${cellDate.getDate()}</div>`;
+            let dayNumClass = 'monthly-day-number';
+            if (cellDate.getDay() === 0 || isPublicHoliday(dateStr)) dayNumClass += ' sunday';
+            else if (cellDate.getDay() === 6) dayNumClass += ' saturday';
+
+            cell.innerHTML = `<div class="${dayNumClass}">${cellDate.getDate()}</div>`;
             
             const dayScheds = schedules.filter(s => s.date === dateStr).sort((a,b) => a.start.localeCompare(b.start));
             dayScheds.forEach(sched => {
@@ -2528,7 +2554,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.addEventListener('dblclick', (e) => {
                     e.preventDefault();
                     if (window.innerWidth <= 768) {
-                        openMobileDailyModal(dateStr);
+                        // Let cell click handle it on mobile
                     } else {
                         pendingScheduleId = sched.id;
                         passwordTargetAction = 'edit-schedule';
@@ -2536,29 +2562,62 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // Handle Mobile double tap
-                let lastTap = 0;
-                item.addEventListener('touchend', (e) => {
-                    const currentTime = new Date().getTime();
-                    const tapLength = currentTime - lastTap;
-                    if (tapLength < 500 && tapLength > 0) {
-                        // It's a double tap
-                        e.preventDefault();
-                        if (window.innerWidth <= 768) {
-                            openMobileDailyModal(dateStr);
-                        } else {
-                            pendingScheduleId = sched.id;
-                            passwordTargetAction = 'edit-schedule';
-                            passwordModal.style.display = 'flex';
-                        }
-                    }
-                    lastTap = currentTime;
-                });
+                // On mobile, just let the tap pass through to the cell
                 cell.appendChild(item);
             });
             
+            // Mobile detail view on click
+            cell.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    showMobileMonthlyDetail(dateStr, dayScheds);
+                }
+            });
+
             monthlyGrid.appendChild(cell);
         }
+    }
+    
+    function showMobileMonthlyDetail(dateStr, dayScheds) {
+        const detailContainer = document.getElementById('mobile-monthly-detail');
+        const detailTitle = document.getElementById('mobile-monthly-detail-title');
+        const detailList = document.getElementById('mobile-monthly-detail-list');
+        
+        detailContainer.style.display = 'block';
+        const [y, m, d] = dateStr.split('-');
+        detailTitle.textContent = `${parseInt(m)}월 ${parseInt(d)}일 일정`;
+        detailList.innerHTML = '';
+        
+        if (dayScheds.length === 0) {
+            detailList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1rem 0;">일정이 없습니다.</div>';
+            return;
+        }
+        
+        dayScheds.forEach(sched => {
+            const card = document.createElement('div');
+            card.className = 'mobile-schedule-card';
+            card.style.setProperty('--item-color', sched.color1);
+            
+            const sH = parseInt(sched.start.split(':')[0]);
+            const sM = parseInt(sched.start.split(':')[1]);
+            let eH = parseInt(sched.end.split(':')[0]);
+            const eM = parseInt(sched.end.split(':')[1]);
+            if (eH < sH || (eH === sH && eM < sM)) eH += 24;
+            const diff = (eH - sH) + (eM - sM)/60;
+            
+            card.innerHTML = `
+                <div>
+                    <div class="emp-name">${sched.empName}</div>
+                    <div class="duration">${diff}시간 근무</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>
+                </div>
+            `;
+            detailList.appendChild(card);
+        });
+        
+        // Scroll into view
+        detailContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function renderAdminCalendar(baseDate) {
@@ -2583,8 +2642,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let isCurrentMonth = cellDate.getMonth() === month;
             if (!isCurrentMonth) cell.classList.add('other-month');
             if (dateStr === todayStr) cell.classList.add('today');
+
+            let dayNumClass = 'monthly-day-number';
+            if (cellDate.getDay() === 0 || isPublicHoliday(dateStr)) dayNumClass += ' sunday';
+            else if (cellDate.getDay() === 6) dayNumClass += ' saturday';
             
-            cell.innerHTML = `<div class="monthly-day-number">${cellDate.getDate()}</div>`;
+            cell.innerHTML = `<div class="${dayNumClass}">${cellDate.getDate()}</div>`;
             
             const dayScheds = schedules.filter(s => s.date === dateStr).sort((a,b) => a.start.localeCompare(b.start));
             dayScheds.forEach(sched => {

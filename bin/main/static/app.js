@@ -2569,6 +2569,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Mobile detail view on click
             cell.addEventListener('click', () => {
                 if (window.innerWidth <= 768) {
+                    document.querySelectorAll('.monthly-day').forEach(el => el.classList.remove('selected-day'));
+                    cell.classList.add('selected-day');
                     showMobileMonthlyDetail(dateStr, dayScheds);
                 }
             });
@@ -2615,9 +2617,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             detailList.appendChild(card);
         });
-        
-        // Scroll into view
-        detailContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function renderAdminCalendar(baseDate) {

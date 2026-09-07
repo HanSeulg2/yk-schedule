@@ -1165,9 +1165,15 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDailyHandover(dateStr);
         } else if (viewMode === 'weekly') {
             const weekDates = getWeekDates(currentDate);
-            const startStr = formatDateString(weekDates[0]);
-            const endStr = formatDateString(weekDates[6]);
-            boardDateDisplay.textContent = `${startStr} ~ ${endStr}`;
+            const targetDate = weekDates[0]; // 월요일을 기준으로 주차 계산
+            const yearStr = String(targetDate.getFullYear()).slice(2);
+            const month = targetDate.getMonth() + 1;
+            
+            // 월의 첫 날 요일을 기준으로 주차 계산
+            const firstDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).getDay();
+            const weekOfMonth = Math.ceil((targetDate.getDate() + firstDay) / 7);
+            
+            boardDateDisplay.textContent = `${yearStr}년 ${month}월 ${weekOfMonth}주차`;
             renderWeeklyTable(weekDates);
         } else {
             const year = currentDate.getFullYear();

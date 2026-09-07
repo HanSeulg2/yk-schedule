@@ -1150,16 +1150,53 @@ input:focus, select:focus {
         color: var(--text-muted);
     }
 
-    /* 주간 표 모바일에서는 아예 숨기고 리스트로 대체 */
+    /* 주간 표, 인벤토리 표 모바일에서는 아예 숨기고 리스트로 대체 */
     .weekly-table {
         display: none !important;
     }
     
-    .mobile-weekly-list {
-        display: flex;
+    .mobile-weekly-list, .mobile-list-container {
+        display: flex !important;
         flex-direction: column;
         padding: 0.5rem 0;
         gap: 0.8rem;
+    }
+
+    .mobile-inventory-card {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .mobile-inventory-card input, .mobile-inventory-card select {
+        width: 100%;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--panel-border);
+        color: white;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    .mobile-inventory-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding-bottom: 0.5rem;
+    }
+    .mobile-inventory-card-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    .mobile-inventory-card-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        width: 80px;
+        flex-shrink: 0;
     }
 
     /* 월간 달력 한눈에 보기 (스타벅스 스타일 콤팩트 뷰) */

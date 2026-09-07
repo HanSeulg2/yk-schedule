@@ -1473,6 +1473,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tbody) return;
         tbody.innerHTML = '';
         
+        const mobileList = document.getElementById('mobile-disposal-list');
+        if (mobileList) mobileList.innerHTML = '';
+
         const items = Object.values(disposalData).sort((a, b) => {
             const timeA = a.archivedAt ? a.archivedAt.toMillis() : 0;
             const timeB = b.archivedAt ? b.archivedAt.toMillis() : 0;
@@ -1480,12 +1483,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         items.forEach(data => {
-            const tr = document.createElement('tr');
             let dateStr = '';
+            let dateOnlyStr = '';
             if (data.archivedAt) {
                 const d = data.archivedAt.toDate();
                 dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                dateOnlyStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
+
+            // 1. Desktop Row
+            const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${dateStr}</td>
                 <td style="font-weight: 600;">${data.name}</td>
@@ -1494,6 +1501,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><button class="btn outline-danger btn-sm" onclick="deleteDisposalRecord('${data.id}')">삭제</button></td>
             `;
             tbody.appendChild(tr);
+
+            // 2. Mobile Card
+            if (mobileList) {
+                const card = document.createElement('div');
+                card.className = 'mobile-inventory-card';
+                card.innerHTML = `
+                    <div class="mobile-inventory-card-header">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">폐기일: ${dateOnlyStr}</span>
+                        <button class="btn outline-danger btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="deleteDisposalRecord('${data.id}')">삭제</button>
+                    </div>
+                    <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.3rem;">${data.name} <span style="font-size:0.9rem; color:var(--text-muted); font-weight:normal;">(수량: ${data.quantity || 0})</span></div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 4px; border-left: 2px solid var(--danger); font-size: 0.85rem; color: #ddd; margin-top: 0.5rem;">${data.memo || '사유 없음'}</div>
+                `;
+                mobileList.appendChild(card);
+            }
         });
     }
 
@@ -1598,11 +1620,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return a.name.localeCompare(b.name);
         });
 
+        const mobileInventoryList = document.getElementById('mobile-inventory-list');
+        if (mobileInventoryList) mobileInventoryList.innerHTML = '';
+
         items.forEach(data => {
-            const tr = document.createElement('tr');
-            tr.id = `inv-row-${data.id}`;
-            
-            // Merge with local edits if any
             const edits = localInventoryEdits[data.id] || {};
             const merged = { ...data, ...edits };
             
@@ -1619,8 +1640,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selected = merged.category === cat ? 'selected' : '';
                 catOptions += `<option value="${cat}" ${selected}>${cat}</option>`;
             });
+
+            // 1. Desktop Row
+            const tr = document.createElement('tr');
+            tr.id = `inv-row-${data.id}`;
             const catSelect = `<select class="inv-category" onchange="updateLocalEdit('${data.id}', 'category', this.value)" style="padding: 0.4rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; width: 100%; font-size: 0.85rem;">${catOptions}</select>`;
-            
             tr.innerHTML = `
                 <td>${catSelect}</td>
                 <td style="text-align: left; padding-left: 0.5rem; padding-right: 0.5rem;">
@@ -1654,6 +1678,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
             inventoryTbody.appendChild(tr);
+
+            // 2. Mobile Card
+            if (mobileInventoryList) {
+                const card = document.createElement('div');
+                card.className = 'mobile-inventory-card';
+                card.innerHTML = `
+                    <div class="mobile-inventory-card-header">
+                        <select onchange="updateLocalEdit('${data.id}', 'category', this.value)" style="width: auto; padding: 0.3rem; font-size: 0.8rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: var(--text-muted); border-radius: 4px;">${catOptions}</select>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${getStatusHtml(currentStatus)}
+                            <label style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;"><input type="checkbox" onchange="updateLocalEdit('${data.id}', 'isOrdered', this.checked)" ${isOrdered}> 발주</label>
+                        </div>
+                    </div>
+                    <input type="text" value="${merged.name}" oninput="updateLocalEdit('${data.id}', 'name', this.value)" style="font-size: 1.1rem; font-weight: bold; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.2); border-radius: 0; padding: 0.2rem 0; color: white;">
+                    
+                    <div class="mobile-inventory-card-row" style="margin-top: 0.5rem;">
+                        <span class="mobile-inventory-card-label">수량 / 기준</span>
+                        <div style="display: flex; gap: 0.3rem; align-items: center;">
+                            <input type="number" value="${qty}" min="0" oninput="updateLocalEdit('${data.id}', 'quantity', parseInt(this.value)||0)" style="width: 60px; text-align: center;">
+                            <span style="color: var(--text-muted);">/</span>
+                            <input type="number" value="${thres}" min="0" oninput="updateLocalEdit('${data.id}', 'threshold', parseInt(this.value)||0)" style="width: 60px; text-align: center;">
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-inventory-card-row">
+                        <span class="mobile-inventory-card-label">입고일</span>
+                        <input type="date" value="${merged.receivedDate || ''}" onchange="updateLocalEdit('${data.id}', 'receivedDate', this.value)">
+                    </div>
+                    <div class="mobile-inventory-card-row">
+                        <span class="mobile-inventory-card-label">개봉일</span>
+                        <input type="date" value="${merged.openedDate || ''}" onchange="updateLocalEdit('${data.id}', 'openedDate', this.value)">
+                    </div>
+                    <div class="mobile-inventory-card-row">
+                        <span class="mobile-inventory-card-label">손질/조리일</span>
+                        <input type="date" value="${merged.actionDate || ''}" onchange="updateLocalEdit('${data.id}', 'actionDate', this.value)">
+                    </div>
+                    <div class="mobile-inventory-card-row">
+                        <span class="mobile-inventory-card-label">메모</span>
+                        <input type="text" value="${merged.memo || ''}" placeholder="메모 입력" oninput="updateLocalEdit('${data.id}', 'memo', this.value)">
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn primary" style="flex: 1;" onclick="saveInventoryItem('${data.id}')">저장</button>
+                        <button class="btn outline-danger" onclick="deleteInventoryItem('${data.id}')">삭제</button>
+                        <button class="btn secondary" onclick="archiveDisposal('${data.id}')">폐기</button>
+                    </div>
+                `;
+                mobileInventoryList.appendChild(card);
+            }
         });
     }
 

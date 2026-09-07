@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=1.23">
+    <link rel="stylesheet" href="styles.css?v=1.24">
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -113,12 +113,12 @@
                         </div>
                         
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
-                            <div id="single-date-wrapper" class="form-group" style="margin: 0; min-width: 150px;">
+                            <div id="single-date-wrapper" class="form-group" style="margin: 0; flex: 1; min-width: 120px;">
                                 <label>날짜</label>
                                 <input type="date" id="schedule-date">
                             </div>
                             
-                            <div id="recurring-date-wrapper" class="form-group" style="display: none; margin: 0;">
+                            <div id="recurring-date-wrapper" class="form-group" style="display: none; margin: 0; flex: 1; min-width: 250px;">
                                 <label>기간 (시작일 ~ 종료일)</label>
                                 <div class="input-row">
                                     <input type="date" id="schedule-start-date">
@@ -136,13 +136,13 @@
                                 </div>
                             </div>
 
-                            <div class="form-group" style="margin: 0; min-width: 150px;">
+                            <div class="form-group" style="margin: 0; flex: 1; min-width: 120px;">
                                 <label>근무자 선택</label>
                                 <select id="schedule-emp">
                                     <option value="" disabled selected>선택</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin: 0; min-width: 150px;">
+                            <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
                                 <label style="display: flex; justify-content: space-between; align-items: center;">
                                     <span>근무 시간 (프리셋)</span>
                                     <button id="manage-presets-btn" class="btn" style="padding: 0; background: transparent; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="프리셋 관리">⚙️</button>

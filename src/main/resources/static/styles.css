@@ -167,16 +167,19 @@ header h1 {
 }
 
 /* Inputs & Buttons */
-input, select {
+input[type="text"], input[type="password"], input[type="email"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
     width: 100%;
-    padding: 0.75rem 1rem;
-    background: rgba(0, 0, 0, 0.2);
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.6rem 0.8rem;
+    background-color: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--panel-border);
-    border-radius: 8px;
+    border-radius: 6px;
     color: var(--text-main);
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-family: inherit;
     transition: all 0.2s ease;
+    box-sizing: border-box;
     color-scheme: dark;
 }
 
@@ -1162,7 +1165,7 @@ input:focus, select:focus {
         flex-direction: column;
     }
     
-    .time-inputs-container {
+    .time-inputs-container, .time-inputs {
         flex-direction: column !important;
     }
     

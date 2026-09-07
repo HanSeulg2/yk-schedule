@@ -1024,6 +1024,10 @@ input:focus, select:focus {
     height: auto !important;
 }
 
+#admin-monthly-grid {
+    grid-auto-rows: minmax(80px, auto);
+}
+
 /* =========================================================
    Mobile Responsiveness
    ========================================================= */
@@ -1100,6 +1104,23 @@ input:focus, select:focus {
         align-items: flex-start;
         gap: 0.8rem;
         padding: 1rem;
+    }
+
+    .admin-left-col .form-group {
+        width: 100%;
+        min-width: 100% !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .admin-left-col > div > div {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .admin-left-col button.btn {
+        width: 100%;
+        height: 48px !important;
+        margin-top: 0.5rem;
     }
 
     .board-controls {
@@ -1260,8 +1281,8 @@ input:focus, select:focus {
         padding: 0.2rem 0;
         font-size: 0.65rem; 
     }
-    .monthly-grid {
-        grid-auto-rows: minmax(45px, auto); 
+    .monthly-grid, #admin-monthly-grid {
+        grid-auto-rows: minmax(45px, auto) !important; 
     }
     .monthly-day {
         padding: 0.1rem;

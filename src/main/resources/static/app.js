@@ -2700,10 +2700,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="emp-name">${sched.empName}</div>
                     <div class="duration">${diff}시간 근무</div>
                 </div>
-                <div style="text-align: right;">
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
                     <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>
+                    <button class="btn outline-danger btn-sm mobile-sched-delete-btn" data-id="${sched.id}" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">삭제</button>
                 </div>
             `;
+            
+            card.querySelector('.mobile-sched-delete-btn').addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                    pendingScheduleId = e.target.dataset.id;
+                    passwordTargetAction = 'delete-schedule';
+                    passwordModal.style.display = 'flex';
+                });
+            });
+            
             detailList.appendChild(card);
         });
     }
@@ -2883,8 +2894,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSalaryView(baseDate) {
         salaryTbody.innerHTML = '';
+        const mobileSalaryList = document.getElementById('mobile-salary-list');
+        if (mobileSalaryList) mobileSalaryList.innerHTML = '';
+
         if(employees.length === 0) {
-            salaryTbody.innerHTML = '<tr><td colspan="7" class="empty-state">등록된 근무자가 없습니다.</td></tr>'; return;
+            salaryTbody.innerHTML = '<tr><td colspan="7" class="empty-state">등록된 근무자가 없습니다.</td></tr>'; 
+            if (mobileSalaryList) mobileSalaryList.innerHTML = '<div class="empty-state">등록된 근무자가 없습니다.</div>';
+            return;
         }
 
         const year = baseDate.getFullYear();
@@ -3016,6 +3032,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const rowData = currentSalaryData[currentSalaryData.length-1]._raw;
             tr.addEventListener('click', () => openPayslipModal(rowData));
             salaryTbody.appendChild(tr);
+
+            // Render Mobile Card
+            const mobileSalaryList = document.getElementById('mobile-salary-list');
+            if (mobileSalaryList) {
+                const card = document.createElement('div');
+                card.className = 'mobile-inventory-card';
+                card.style.cursor = 'pointer';
+                if(emp.isResigned) card.style.opacity = '0.5';
+                
+                card.innerHTML = `
+                    <div class="mobile-inventory-card-header" style="border-left: 4px solid ${emp.color1}; padding-left: 0.8rem;">
+                        <div style="font-weight: 600; font-size: 1.1rem;">
+                            ${emp.name}
+                            ${emp.isResigned ? '<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">퇴사</span>' : ''}
+                            ${emp.excludeSalary ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">급여제외</span>' : ''}
+                        </div>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">${wage.toLocaleString()}원/시</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 0.5rem;">
+                        <span style="color: var(--text-muted);">순 근무시간:</span>
+                        <strong style="color: white;">${totalNet.toFixed(1)}시간</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">주휴수당:</span>
+                        <span style="color: #10b981;">${badgeHtml} +${emp.excludeSalary ? 0 : Math.round(totalAllowance).toLocaleString()}원</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.1rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed rgba(255,255,255,0.1);">
+                        <span style="color: white;">예상 월급:</span>
+                        <strong style="color: var(--accent);">${salaryAmountHtml}</strong>
+                    </div>
+                `;
+                card.addEventListener('click', () => openPayslipModal(rowData));
+                mobileSalaryList.appendChild(card);
+            }
         });
 
         // Update Stats Widget

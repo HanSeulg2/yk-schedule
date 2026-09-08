@@ -1105,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewContainerRules) viewContainerRules.style.display = 'none';
         if (viewContainerDisposal) viewContainerDisposal.style.display = 'none';
         if (viewContainerHandover) viewContainerHandover.style.display = 'none';
-        document.querySelector('.board-controls').style.visibility = 'visible'; // show board controls by default
+        document.getElementById('date-controls-wrapper').style.visibility = 'visible'; // show board controls by default
 
         if (mode === 'daily') {
             viewDailyBtn.classList.add('active');
@@ -1122,23 +1122,23 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mode === 'inventory') {
             viewInventoryBtn.classList.add('active');
             viewContainerInventory.style.display = 'block';
-            document.querySelector('.board-controls').style.visibility = 'hidden'; // hide board controls for inventory
+            document.getElementById('date-controls-wrapper').style.visibility = 'hidden'; // hide board controls for inventory
             renderInventoryCheckStatus();
             renderInventory(); // Load inventory data
         } else if (mode === 'disposal') {
             viewInventoryBtn.classList.add('active'); // Keep inventory tab highlighted
             if (viewContainerDisposal) viewContainerDisposal.style.display = 'block';
-            document.querySelector('.board-controls').style.visibility = 'hidden'; 
+            document.getElementById('date-controls-wrapper').style.visibility = 'hidden'; 
             renderInventoryCheckStatus();
             renderDisposalArchive();
         } else if (mode === 'rules') {
             if (viewRulesBtn) viewRulesBtn.classList.add('active');
             if (viewContainerRules) viewContainerRules.style.display = 'block';
-            document.querySelector('.board-controls').style.visibility = 'hidden';
+            document.getElementById('date-controls-wrapper').style.visibility = 'hidden';
         } else if (mode === 'handover') {
             if (viewHandoverBtn) viewHandoverBtn.classList.add('active');
             if (viewContainerHandover) viewContainerHandover.style.display = 'block';
-            document.querySelector('.board-controls').style.visibility = 'hidden'; 
+            document.getElementById('date-controls-wrapper').style.visibility = 'hidden'; 
             renderHandovers();
         }
         

@@ -1277,9 +1277,12 @@ input:focus, select:focus {
         justify-content: flex-start;
         align-items: stretch;
         padding: 1.5rem;
+        padding-bottom: 3rem; /* 스크롤 시 하단 여유공간 */
         z-index: 10000;
         transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .view-toggles.open {
@@ -1287,6 +1290,7 @@ input:focus, select:focus {
     }
 
     .view-toggles .btn {
+        flex-shrink: 0;
         margin-left: 0 !important;
         margin-bottom: 0.8rem;
         text-align: left;

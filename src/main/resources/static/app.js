@@ -3332,10 +3332,16 @@ document.addEventListener('DOMContentLoaded', () => {
         data.dailyBreakdown.forEach(d => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${d.date.slice(5).replace('-', '.')}</td>
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${d.time} <span style="color:var(--text-muted); font-size:0.8em">(${d.gross.toFixed(1)}h)</span></td>
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${d.net.toFixed(1)}h <span style="color:var(--danger); font-size:0.8em">(-${d.rest}h)</span></td>
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${Math.round(d.pay).toLocaleString()}원</td>
+                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${d.date.slice(5).replace('-', '.')}</td>
+                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center;">
+                    <div style="white-space: nowrap;">${d.time}</div>
+                    <div style="color:var(--text-muted); font-size:0.75em; white-space: nowrap;">(${d.gross.toFixed(1)}h)</div>
+                </td>
+                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center;">
+                    <div style="white-space: nowrap;">${d.net.toFixed(1)}h</div>
+                    <div style="color:var(--danger); font-size:0.75em; white-space: nowrap;">(-${d.rest}h)</div>
+                </td>
+                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: right; white-space: nowrap;">${Math.round(d.pay).toLocaleString()}원</td>
             `;
             payslipDailyTbody.appendChild(tr);
         });
@@ -3349,10 +3355,10 @@ document.addEventListener('DOMContentLoaded', () => {
             data.weeklyBreakdown.forEach(w => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${w.weekNo}주차</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${w.hours.toFixed(1)}시간</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${w.isQualified ? '<span style="color:var(--success)">충족 (15h+)</span>' : '<span style="color:var(--danger)">미달</span>'}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${Math.round(w.allowance).toLocaleString()}원</td>
+                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${w.weekNo}주차</td>
+                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${w.hours.toFixed(1)}h</td>
+                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${w.isQualified ? '<span style="color:var(--success)">O</span>' : '<span style="color:var(--danger)">X</span>'}</td>
+                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: right; white-space: nowrap;">${Math.round(w.allowance).toLocaleString()}원</td>
                 `;
                 payslipWeeklyTbody.appendChild(tr);
             });

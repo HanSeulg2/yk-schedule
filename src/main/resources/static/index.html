@@ -9,7 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=1.32">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+    <!-- Cache busting parameter -->
+    <link rel="stylesheet" href="styles.css?v=1.41">
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -65,6 +67,7 @@
                         <button id="view-daily-btn" class="btn primary btn-sm active">일간 타임라인</button>
                         <button id="view-weekly-btn" class="btn btn-sm">주간 표</button>
                         <button id="view-monthly-btn" class="btn btn-sm">월간 달력</button>
+                        <button id="view-my-salary-btn" class="btn btn-sm" style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.3);">💰 내 급여 조회</button>
                         <button id="view-inventory-btn" class="btn btn-sm">📦 재고 관리</button>
                         <button id="view-rules-btn" class="btn btn-sm ml-2">📖 매장 매뉴얼</button>
                         <button id="view-handover-btn" class="btn btn-sm ml-2">📝 인수인계</button>
@@ -189,6 +192,10 @@
                             <div class="form-group" style="flex: 1; margin: 0;">
                                 <label>이름</label>
                                 <input type="text" id="emp-name" placeholder="이름을 입력하세요" autocomplete="off">
+                            </div>
+                            <div class="form-group" style="flex: 1; margin: 0; min-width: 80px;">
+                                <label>PIN (4자리)</label>
+                                <input type="password" id="emp-pin" placeholder="기본 0000" maxlength="4">
                             </div>
                             <div class="form-group" style="flex: 1; margin: 0;">
                                 <label>시급 (원)</label>
@@ -455,6 +462,28 @@
         </div>
     </div>
 
+    <!-- 내 급여 조회 인증 모달 -->
+    <div id="my-salary-auth-modal" class="modal-overlay" style="display: none; z-index: 999;">
+        <div class="modal-content glass-panel" style="max-width: 320px;">
+            <h3>💰 내 급여 조회</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">본인 이름과 비밀번호를 입력하세요.</p>
+            <div class="form-group">
+                <label>이름</label>
+                <select id="my-salary-emp-select" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white; margin-bottom: 0.5rem;">
+                    <option value="" disabled selected>이름 선택</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>PIN (4자리)</label>
+                <input type="password" id="my-salary-pin-input" placeholder="비밀번호 4자리" maxlength="4" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.2rem; padding: 0.8rem; width: 100%; border-radius: 8px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button id="cancel-my-salary-btn" class="btn outline-light w-full">취소</button>
+                <button id="confirm-my-salary-btn" class="btn primary w-full">확인</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 근무 프리셋 관리 모달 -->
     <div id="preset-manage-modal" class="modal-overlay" style="display: none; z-index: 1000;">
         <div class="modal-content glass-panel" style="max-width: 400px; width: 100%;">
@@ -680,6 +709,7 @@
         <div class="modal-content glass-panel" style="max-width: 360px;">
             <h3 style="margin-top: 0;">근무자 정보 수정</h3>
             <input type="text" id="edit-emp-name" placeholder="이름" style="margin-top: 1rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
+            <input type="password" id="edit-emp-pin" placeholder="PIN (기본 0000)" maxlength="4" style="margin-top: 0.5rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
             <input type="number" id="edit-emp-wage" placeholder="시급" style="margin-top: 0.5rem; width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--panel-border); background: var(--bg-color); color: white;">
             
             <div style="margin-top: 1rem; background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.5rem;">
@@ -789,7 +819,7 @@
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- App Script -->
-    <script src="app.js?v=1.40"></script>
+    <script src="app.js?v=1.41"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

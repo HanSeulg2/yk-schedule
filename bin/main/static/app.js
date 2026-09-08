@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM Elements - Controls
     const empNameInput = document.getElementById('emp-name');
+    const empPinInput = document.getElementById('emp-pin');
     const empWageInput = document.getElementById('emp-wage');
     const addEmpBtn = document.getElementById('add-emp-btn');
     const employeeListEl = document.getElementById('employee-list');
@@ -138,9 +139,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const payslipTotalAmount = document.getElementById('payslip-total-amount');
     const payslipModalClose = document.getElementById('payslip-modal-close');
 
+    // DOM Elements - My Salary Auth
+    const viewMySalaryBtn = document.getElementById('view-my-salary-btn');
+    const mySalaryAuthModal = document.getElementById('my-salary-auth-modal');
+    const mySalaryEmpSelect = document.getElementById('my-salary-emp-select');
+    const mySalaryPinInput = document.getElementById('my-salary-pin-input');
+    const cancelMySalaryBtn = document.getElementById('cancel-my-salary-btn');
+    const confirmMySalaryBtn = document.getElementById('confirm-my-salary-btn');
+
     // DOM Elements - Edit Employee Modal
     const editEmpModal = document.getElementById('edit-emp-modal');
     const editEmpNameInput = document.getElementById('edit-emp-name');
+    const editEmpPinInput = document.getElementById('edit-emp-pin');
     const editEmpWageInput = document.getElementById('edit-emp-wage');
     const editEmpColorsContainer = document.getElementById('edit-emp-colors');
     const toggleResignEmpBtn = document.getElementById('toggle-resign-emp-btn');
@@ -1992,6 +2002,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CRUD ---
     async function addEmployee() {
         const name = empNameInput.value.trim();
+        let pin = empPinInput.value.trim();
+        if (pin.length !== 4) pin = '0000';
         const wageStr = empWageInput.value.trim();
         const wage = wageStr === '' ? defaultWage : parseInt(wageStr, 10);
         const applyHolidayAllowance = document.getElementById('emp-holiday-allowance').checked;
@@ -2011,10 +2023,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorPair = colors[colorIdx];
         
         empNameInput.value = '';
+        empPinInput.value = '';
         
         try {
             await db.collection('employees').add({
                 name,
+                pin,
                 hourlyWage: wage,
                 color1: colorPair[0],
                 color2: colorPair[1],
@@ -2052,6 +2066,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (quickAddEmpSelect) quickAddEmpSelect.innerHTML = '<option value="" disabled selected>근무자를 선택하세요</option>';
         if (handoverEmpSelect) handoverEmpSelect.innerHTML = '<option value="" disabled selected>작성자 선택</option>';
         if (handoverCheckEmpSelect) handoverCheckEmpSelect.innerHTML = '<option value="" disabled selected>이름 선택</option>';
+        if (mySalaryEmpSelect) mySalaryEmpSelect.innerHTML = '<option value="" disabled selected>이름 선택</option>';
         
         const showResigned = showResignedCb.checked;
         
@@ -2081,7 +2096,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.textContent = emp.name;
                 scheduleEmpSelect.appendChild(option);
                 
-                
                 if (quickAddEmpSelect) {
                     const qaOption = document.createElement('option');
                     qaOption.value = emp.id;
@@ -2102,6 +2116,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     hcOption.textContent = emp.name;
                     handoverCheckEmpSelect.appendChild(hcOption);
                 }
+
+                if (mySalaryEmpSelect) {
+                    const msOption = document.createElement('option');
+                    msOption.value = emp.id;
+                    msOption.textContent = emp.name;
+                    mySalaryEmpSelect.appendChild(msOption);
+                }
             }
         });
     }
@@ -2115,6 +2136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (emp) {
             editEmpNameInput.value = emp.name;
+            editEmpPinInput.value = emp.pin || '0000';
             editEmpWageInput.value = emp.hourlyWage || 10030;
             document.getElementById('edit-emp-holiday-allowance').checked = emp.applyHolidayAllowance !== false;
             document.getElementById('edit-emp-exclude-salary').checked = !!emp.excludeSalary;
@@ -2173,6 +2195,8 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmEditEmpBtn.addEventListener('click', async () => {
         if (!editingEmpId) return;
         const newName = editEmpNameInput.value.trim();
+        let newPin = editEmpPinInput.value.trim();
+        if (newPin.length !== 4) newPin = '0000';
         const newWageStr = editEmpWageInput.value.trim();
         const newWage = newWageStr === '' ? defaultWage : parseInt(newWageStr, 10);
         if (!newName) return;
@@ -2184,6 +2208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const excludeSalary = document.getElementById('edit-emp-exclude-salary').checked;
             await db.collection('employees').doc(editingEmpId).update({
                 name: newName,
+                pin: newPin,
                 hourlyWage: newWage,
                 color1: editingEmpSelectedColor[0],
                 color2: editingEmpSelectedColor[1],
@@ -2892,6 +2917,69 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function calculateEmployeeSalaryData(emp, year, month) {
+        const monthScheds = schedules.filter(s => {
+            const d = new Date(s.date);
+            return d.getFullYear() === year && d.getMonth() === month && s.empId === emp.id;
+        }).sort((a,b) => a.date.localeCompare(b.date));
+
+        const wage = emp.hourlyWage || defaultWage;
+        
+        let totalGross = 0;
+        let totalRest = 0;
+        let totalNet = 0;
+        
+        let weeklyHours = {};
+        let dailyBreakdown = [];
+
+        monthScheds.forEach(sched => {
+            const dur = calculateDuration(sched.start, sched.end);
+            totalGross += dur.gross;
+            totalRest += dur.rest;
+            totalNet += dur.net;
+
+            const weekNo = getWeekNumber(new Date(sched.date));
+            if(!weeklyHours[weekNo]) weeklyHours[weekNo] = 0;
+            weeklyHours[weekNo] += dur.net;
+
+            dailyBreakdown.push({
+                date: sched.date,
+                time: `${sched.start}~${sched.end}`,
+                gross: dur.gross,
+                rest: dur.rest,
+                net: dur.net,
+                pay: dur.net * wage
+            });
+        });
+
+        let totalAllowance = 0;
+        let weeklyBreakdown = [];
+        
+        const appliesAllowance = emp.applyHolidayAllowance !== false;
+        
+        Object.keys(weeklyHours).forEach(weekNo => {
+            const hrs = weeklyHours[weekNo];
+            let isQualified = false;
+            let allowance = 0;
+            if(hrs >= 15 && appliesAllowance) {
+                isQualified = true;
+                const cappedHrs = Math.min(hrs, 40);
+                allowance = (cappedHrs / 40) * 8 * wage;
+                totalAllowance += allowance;
+            }
+            weeklyBreakdown.push({
+                weekNo: weekNo,
+                hours: hrs,
+                isQualified: isQualified,
+                allowance: allowance
+            });
+        });
+
+        const estimatedSalary = (totalNet * wage) + totalAllowance;
+        
+        return { emp, wage, totalGross, totalRest, totalNet, totalAllowance, estimatedSalary, dailyBreakdown, weeklyBreakdown };
+    }
+
     function renderSalaryView(baseDate) {
         salaryTbody.innerHTML = '';
         const mobileSalaryList = document.getElementById('mobile-salary-list');
@@ -2926,63 +3014,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const wage = emp.hourlyWage || defaultWage;
             
-            let totalGross = 0;
-            let totalRest = 0;
-            let totalNet = 0;
+            // Keep raw data for modal
+            const rawData = calculateEmployeeSalaryData(emp, year, month);
             
-            // For weekly holiday allowance
-            let weeklyHours = {};
-            let dailyBreakdown = [];
-
-            empScheds.forEach(sched => {
-                const dur = calculateDuration(sched.start, sched.end);
-                totalGross += dur.gross;
-                totalRest += dur.rest;
-                totalNet += dur.net;
-
-                const weekNo = getWeekNumber(new Date(sched.date));
-                if(!weeklyHours[weekNo]) weeklyHours[weekNo] = 0;
-                weeklyHours[weekNo] += dur.net;
-
-                dailyBreakdown.push({
-                    date: sched.date,
-                    time: `${sched.start}~${sched.end}`,
-                    gross: dur.gross,
-                    rest: dur.rest,
-                    net: dur.net,
-                    pay: dur.net * wage
-                });
-            });
-
-            // Calculate Holiday Allowance
-            let totalAllowance = 0;
-            let weeklyBreakdown = [];
-            
-            const appliesAllowance = emp.applyHolidayAllowance !== false;
-            
-            Object.keys(weeklyHours).forEach(weekNo => {
-                const hrs = weeklyHours[weekNo];
-                let isQualified = false;
-                let allowance = 0;
-                if(hrs >= 15 && appliesAllowance) {
-                    isQualified = true;
-                    const cappedHrs = Math.min(hrs, 40);
-                    allowance = (cappedHrs / 40) * 8 * wage;
-                    totalAllowance += allowance;
-                }
-                weeklyBreakdown.push({
-                    weekNo: weekNo,
-                    hours: hrs,
-                    isQualified: isQualified,
-                    allowance: allowance
-                });
-            });
-
-            const estimatedSalary = (totalNet * wage) + totalAllowance;
+            // Calculate totals for stats widget (excluding excluded salary)
+            const estimatedSalary = rawData.estimatedSalary;
             if (!emp.excludeSalary) {
                 currentMonthTotal += estimatedSalary;
-                currentMonthBase += (totalNet * wage);
-                currentMonthAllowance += totalAllowance;
+                currentMonthBase += (rawData.totalNet * rawData.wage);
+                currentMonthAllowance += rawData.totalAllowance;
             } else {
                 currentMonthSavedTotal += estimatedSalary;
             }
@@ -2990,24 +3030,24 @@ document.addEventListener('DOMContentLoaded', () => {
             // Push to excel data
             currentSalaryData.push({
                 이름: emp.name + (emp.excludeSalary ? ' (급여제외)' : ''),
-                '시급(원)': emp.excludeSalary ? '0 (절감액계산용: ' + wage + ')' : wage,
-                '총 근무(시간)': totalGross.toFixed(1),
-                '휴게 공제(시간)': totalRest.toFixed(1),
-                '순 근무(시간)': totalNet.toFixed(1),
-                '주휴수당(원)': emp.excludeSalary ? 0 : Math.round(totalAllowance),
+                '시급(원)': emp.excludeSalary ? '0 (절감액계산용: ' + rawData.wage + ')' : rawData.wage,
+                '총 근무(시간)': rawData.totalGross.toFixed(1),
+                '휴게 공제(시간)': rawData.totalRest.toFixed(1),
+                '순 근무(시간)': rawData.totalNet.toFixed(1),
+                '주휴수당(원)': emp.excludeSalary ? 0 : Math.round(rawData.totalAllowance),
                 '예상 총 월급(원)': emp.excludeSalary ? 0 : Math.round(estimatedSalary),
                 '절감액(원)': emp.excludeSalary ? Math.round(estimatedSalary) : 0,
                 
                 // Keep raw data for modal
-                _raw: {
-                    emp, wage, totalGross, totalRest, totalNet, totalAllowance, estimatedSalary, dailyBreakdown, weeklyBreakdown
-                }
+                _raw: rawData
             });
+
 
             const tr = document.createElement('tr');
             tr.style.cursor = 'pointer';
             if(emp.isResigned) tr.style.opacity = '0.5';
             
+            const appliesAllowance = emp.applyHolidayAllowance !== false;
             const badgeHtml = appliesAllowance 
                 ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">ON</span>' 
                 : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">OFF</span>';
@@ -3020,17 +3060,17 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td class="emp-name-col" style="border-left: 4px solid ${emp.color1}">
                     <strong style="display: flex; align-items: center;">${emp.name}${emp.isResigned ? '<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">퇴사</span>' : ''}${emp.excludeSalary ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">급여제외</span>' : ''}</strong><br>
-                    <span style="font-size:0.8rem; color:var(--text-muted)">${wage.toLocaleString()}원/시</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">${rawData.wage.toLocaleString()}원/시</span>
                 </td>
-                <td>${totalGross.toFixed(1)}시간</td>
-                <td class="deduction-amount">-${totalRest.toFixed(1)}시간</td>
-                <td><strong>${totalNet.toFixed(1)}시간</strong></td>
+                <td>${rawData.totalGross.toFixed(1)}시간</td>
+                <td class="deduction-amount">-${rawData.totalRest.toFixed(1)}시간</td>
+                <td><strong>${rawData.totalNet.toFixed(1)}시간</strong></td>
                 <td>${badgeHtml}</td>
-                <td class="allowance-amount">${emp.excludeSalary ? `<span style="text-decoration: line-through; color: var(--text-muted);">+${Math.round(totalAllowance).toLocaleString()}원</span>` : `+${Math.round(totalAllowance).toLocaleString()}원`}</td>
+                <td class="allowance-amount">${emp.excludeSalary ? `<span style="text-decoration: line-through; color: var(--text-muted);">+${Math.round(rawData.totalAllowance).toLocaleString()}원</span>` : `+${Math.round(rawData.totalAllowance).toLocaleString()}원`}</td>
                 <td class="salary-amount">${salaryAmountHtml}</td>
             `;
-            const rowData = currentSalaryData[currentSalaryData.length-1]._raw;
-            tr.addEventListener('click', () => openPayslipModal(rowData));
+            const rowDataToPass = currentSalaryData[currentSalaryData.length-1]._raw;
+            tr.addEventListener('click', () => openPayslipModal(rowDataToPass));
             salaryTbody.appendChild(tr);
 
             // Render Mobile Card
@@ -3048,22 +3088,22 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${emp.isResigned ? '<span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">퇴사</span>' : ''}
                             ${emp.excludeSalary ? '<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">급여제외</span>' : ''}
                         </div>
-                        <div style="font-size:0.85rem; color:var(--text-muted);">${wage.toLocaleString()}원/시</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">${rawData.wage.toLocaleString()}원/시</div>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 0.5rem;">
                         <span style="color: var(--text-muted);">순 근무시간:</span>
-                        <strong style="color: white;">${totalNet.toFixed(1)}시간</strong>
+                        <strong style="color: white;">${rawData.totalNet.toFixed(1)}시간</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
                         <span style="color: var(--text-muted);">주휴수당:</span>
-                        <span style="color: #10b981;">${badgeHtml} +${emp.excludeSalary ? 0 : Math.round(totalAllowance).toLocaleString()}원</span>
+                        <span style="color: #10b981;">${badgeHtml} +${emp.excludeSalary ? 0 : Math.round(rawData.totalAllowance).toLocaleString()}원</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 1.1rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed rgba(255,255,255,0.1);">
                         <span style="color: white;">예상 월급:</span>
                         <strong style="color: var(--accent);">${salaryAmountHtml}</strong>
                     </div>
                 `;
-                card.addEventListener('click', () => openPayslipModal(rowData));
+                card.addEventListener('click', () => openPayslipModal(rowDataToPass));
                 mobileSalaryList.appendChild(card);
             }
         });
@@ -3171,7 +3211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         x: {
                             stacked: true,
                             grid: { display: false },
-                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)', padding: 10 }
                         },
                         y: {
                             stacked: true,
@@ -3226,6 +3266,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
+                    layout: { padding: { bottom: 15, top: 10 } },
                     plugins: { legend: { display: false } },
                     scales: {
                         y: { 
@@ -3236,7 +3277,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 callback: function(value) { return (value / 10000).toLocaleString() + '만'; }
                             } 
                         },
-                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.7)' } }
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { color: 'rgba(255,255,255,0.7)', padding: 10 } 
+                        }
                     }
                 }
             });
@@ -3357,6 +3401,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             XLSX.writeFile(wb, `${year}년_${month}월_급여대장_YKS.xlsx`);
+        });
+    }
+
+    if (viewMySalaryBtn) {
+        viewMySalaryBtn.addEventListener('click', () => {
+            if (window.innerWidth <= 1024) {
+                // 사이드바 닫기 로직 임시 호출 (아래에 선언되어있으나 끌어다 씀, 호이스팅 안되므로 직접 조작하거나 무시)
+                const viewToggles = document.querySelector('.view-toggles');
+                const sidebarOverlay = document.getElementById('sidebar-overlay');
+                if(viewToggles) viewToggles.classList.remove('open');
+                if(sidebarOverlay) sidebarOverlay.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+            mySalaryPinInput.value = '';
+            if (mySalaryEmpSelect.options.length > 1) {
+                mySalaryEmpSelect.selectedIndex = 0;
+            }
+            mySalaryAuthModal.style.display = 'flex';
+        });
+    }
+
+    if (cancelMySalaryBtn) {
+        cancelMySalaryBtn.addEventListener('click', () => {
+            mySalaryAuthModal.style.display = 'none';
+        });
+    }
+
+    if (confirmMySalaryBtn) {
+        confirmMySalaryBtn.addEventListener('click', () => {
+            const empId = mySalaryEmpSelect.value;
+            const pin = mySalaryPinInput.value.trim();
+            if (!empId) { alert('이름을 선택해주세요.'); return; }
+            if (!pin || pin.length !== 4) { alert('PIN 번호 4자리를 입력해주세요.'); return; }
+
+            const emp = employees.find(e => e.id === empId);
+            if (!emp) return;
+
+            const correctPin = emp.pin || '0000';
+            if (pin === correctPin) {
+                // Success
+                mySalaryAuthModal.style.display = 'none';
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const rawData = calculateEmployeeSalaryData(emp, year, month);
+                openPayslipModal(rawData);
+            } else {
+                alert('비밀번호가 일치하지 않습니다.');
+            }
         });
     }
 

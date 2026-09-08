@@ -1384,7 +1384,7 @@ input:focus, select:focus {
     }
 
     /* 주간 표, 인벤토리 표 모바일에서는 아예 숨기고 리스트로 대체 */
-    .weekly-table {
+    .weekly-table:not(.payslip-table) {
         display: none !important;
     }
     

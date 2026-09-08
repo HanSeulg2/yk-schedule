@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
     <!-- Cache busting parameter -->
-    <link rel="stylesheet" href="styles.css?v=1.41">
+    <link rel="stylesheet" href="styles.css?v=1.42">
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -584,15 +584,15 @@
                 <button id="close-payslip-btn" class="btn outline-light btn-sm">닫기</button>
             </div>
             
-            <div style="max-height: 55vh; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.5rem; overflow-x: hidden;">
+            <div style="max-height: 55vh; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.5rem; overflow-x: auto;">
                 <h4 style="margin-bottom: 0.5rem; margin-top: 0; color: var(--primary);">일별 근무 내역</h4>
-                <table class="weekly-table" style="font-size: 0.85rem; margin-bottom: 1.5rem; min-width: unset;">
+                <table class="weekly-table payslip-table" style="font-size: 0.85rem; margin-bottom: 1.5rem; min-width: unset; width: 100%; table-layout: auto;">
                     <thead>
                         <tr>
-                            <th>날짜</th>
-                            <th>예정 시간</th>
-                            <th>출퇴근 기록</th>
-                            <th>일급</th>
+                            <th style="padding: 0.5rem;">날짜</th>
+                            <th style="padding: 0.5rem;">예정 시간</th>
+                            <th style="padding: 0.5rem;">출퇴근 기록</th>
+                            <th style="padding: 0.5rem;">일급</th>
                         </tr>
                     </thead>
                     <tbody id="payslip-daily-tbody">
@@ -601,13 +601,13 @@
                 </table>
 
                 <h4 style="margin-bottom: 0.5rem; color: var(--accent);">주휴수당 발생 내역</h4>
-                <table class="weekly-table" style="font-size: 0.85rem; min-width: unset;">
+                <table class="weekly-table payslip-table" style="font-size: 0.85rem; min-width: unset; width: 100%; table-layout: auto;">
                     <thead>
                         <tr>
-                            <th>주차</th>
-                            <th>총 근무 시간</th>
-                            <th>조건 충족</th>
-                            <th>주휴수당</th>
+                            <th style="padding: 0.5rem;">주차</th>
+                            <th style="padding: 0.5rem;">총 근무 시간</th>
+                            <th style="padding: 0.5rem;">조건 충족</th>
+                            <th style="padding: 0.5rem;">주휴수당</th>
                         </tr>
                     </thead>
                     <tbody id="payslip-weekly-tbody">
@@ -819,7 +819,7 @@
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- App Script -->
-    <script src="app.js?v=1.41"></script>
+    <script src="app.js?v=1.42"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

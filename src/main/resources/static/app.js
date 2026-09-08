@@ -406,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 employees.push({
                     id: doc.id,
                     name: data.name,
+                    pin: data.pin,
                     hourlyWage: data.hourlyWage || defaultWage,
                     color1: data.color1 || colors[0][0],
                     color2: data.color2 || colors[0][1],

@@ -3332,10 +3332,10 @@ document.addEventListener('DOMContentLoaded', () => {
         data.dailyBreakdown.forEach(d => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${d.date.slice(5)}</td>
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${d.time} <span style="color:var(--text-muted); font-size:0.8em">(${d.gross.toFixed(1)}h)</span></td>
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${d.net.toFixed(1)}h <span style="color:var(--danger); font-size:0.8em">(-${d.rest}h)</span></td>
-                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${Math.round(d.pay).toLocaleString()}원</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${d.date.slice(5).replace('-', '.')}</td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${d.time} <span style="color:var(--text-muted); font-size:0.8em">(${d.gross.toFixed(1)}h)</span></td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${d.net.toFixed(1)}h <span style="color:var(--danger); font-size:0.8em">(-${d.rest}h)</span></td>
+                <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${Math.round(d.pay).toLocaleString()}원</td>
             `;
             payslipDailyTbody.appendChild(tr);
         });
@@ -3349,10 +3349,10 @@ document.addEventListener('DOMContentLoaded', () => {
             data.weeklyBreakdown.forEach(w => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${w.weekNo}주차</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${w.hours.toFixed(1)}시간</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${w.isQualified ? '<span style="color:var(--success)">충족 (15h 이상)</span>' : '<span style="color:var(--danger)">미달</span>'}</td>
-                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border);">${Math.round(w.allowance).toLocaleString()}원</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${w.weekNo}주차</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${w.hours.toFixed(1)}시간</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${w.isQualified ? '<span style="color:var(--success)">충족 (15h+)</span>' : '<span style="color:var(--danger)">미달</span>'}</td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid var(--panel-border); white-space: nowrap;">${Math.round(w.allowance).toLocaleString()}원</td>
                 `;
                 payslipWeeklyTbody.appendChild(tr);
             });

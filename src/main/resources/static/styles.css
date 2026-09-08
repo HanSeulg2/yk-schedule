@@ -1263,6 +1263,7 @@ input:focus, select:focus {
     }
     .mobile-sidebar-header {
         display: flex !important;
+        flex-shrink: 0;
     }
     .view-toggles {
         position: fixed;

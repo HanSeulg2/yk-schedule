@@ -553,7 +553,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 defaultWage = 10320;
             }
         });
+
+        // Presets Listener
+        db.collection('presets').onSnapshot((snapshot) => {
+            presets = [];
+            snapshot.forEach(doc => {
+                presets.push({ id: doc.id, ...doc.data() });
+            });
+            // Sort by start time
+            presets.sort((a, b) => a.start.localeCompare(b.start));
+            
+            updatePresetDropdowns();
+            renderPresetManageList();
+        });
     }
+
+    function updatePresetDropdowns() {
+        const createOptions = () => {
+            let html = '<option value="">직접 입력</option>';
+            presets.forEach(p => {
+                html += `<option value="${p.id}" data-start="${p.start}" data-end="${p.end}">${p.name} (${p.start}~${p.end})</option>`;
+            });
+            return html;
+        };
+        const optionsHtml = createOptions();
+        
+        if (schedulePreset) schedulePreset.innerHTML = optionsHtml;
+        if (quickAddPresetSelect) quickAddPresetSelect.innerHTML = optionsHtml;
+    }
+
+    function renderPresetManageList() {
+        if (!presetListEl) return;
+        presetListEl.innerHTML = '';
+        if (presets.length === 0) {
+            presetListEl.innerHTML = '<li style="text-align:center; color:var(--text-muted); font-size:0.9rem;">등록된 프리셋이 없습니다.</li>';
+            return;
+        }
+        presets.forEach(p => {
+            const li = document.createElement('li');
+            li.style = 'display:flex; justify-content:space-between; align-items:center; padding: 0.6rem; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:0.3rem;';
+            li.innerHTML = `
+                <div style="font-size: 0.95rem; color: white;">
+                    <strong>${p.name}</strong> <span style="color:var(--text-muted); margin-left:0.5rem; font-size:0.85rem;">${p.start} ~ ${p.end}</span>
+                </div>
+                <button class="delete-preset-btn btn outline-danger btn-sm" data-id="${p.id}" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">삭제</button>
+            `;
+            const delBtn = li.querySelector('.delete-preset-btn');
+            if(delBtn) {
+                delBtn.addEventListener('click', async (e) => {
+                    const id = e.target.dataset.id;
+                    if(confirm('이 프리셋을 삭제하시겠습니까?')) {
+                        await db.collection('presets').doc(id).delete();
+                    }
+                });
+            }
+            presetListEl.appendChild(li);
+        });
+    }
+
 
     const openDefaultWageBtn = document.getElementById('open-default-wage-btn');
     const defaultWageModal = document.getElementById('default-wage-modal');
@@ -3512,6 +3569,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     closeMobileSidebar();
                 }
             });
+        });
+    }
+
+    // --- Preset Feature Listeners ---
+    if (managePresetsBtn) {
+        managePresetsBtn.addEventListener('click', () => {
+            if (presetManageModal) presetManageModal.style.display = 'flex';
+        });
+    }
+
+    if (closePresetManageBtn) {
+        closePresetManageBtn.addEventListener('click', () => {
+            if (presetManageModal) presetManageModal.style.display = 'none';
+        });
+    }
+
+    if (addPresetBtn) {
+        addPresetBtn.addEventListener('click', async () => {
+            const name = newPresetName ? newPresetName.value.trim() : '';
+            const start = newPresetStart ? newPresetStart.value : '';
+            const end = newPresetEnd ? newPresetEnd.value : '';
+            
+            if (!name || !start || !end) {
+                alert('프리셋 이름과 시간을 모두 입력해주세요.');
+                return;
+            }
+            
+            try {
+                await db.collection('presets').add({
+                    name,
+                    start,
+                    end,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                if (newPresetName) newPresetName.value = '';
+                // Optional: show a success toast or alert
+            } catch (e) {
+                console.error(e);
+                alert('프리셋 추가에 실패했습니다.');
+            }
+        });
+    }
+
+    if (schedulePreset) {
+        schedulePreset.addEventListener('change', (e) => {
+            const opt = e.target.options[e.target.selectedIndex];
+            if (opt.value) {
+                if (startTimeInput) startTimeInput.value = opt.dataset.start;
+                if (endTimeInput) endTimeInput.value = opt.dataset.end;
+            }
+        });
+    }
+
+    if (quickAddPresetSelect) {
+        quickAddPresetSelect.addEventListener('change', (e) => {
+            const opt = e.target.options[e.target.selectedIndex];
+            if (opt.value) {
+                if (quickAddStartInput) quickAddStartInput.value = opt.dataset.start;
+                if (quickAddEndInput) quickAddEndInput.value = opt.dataset.end;
+            }
         });
     }
 

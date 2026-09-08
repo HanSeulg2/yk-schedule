@@ -48,10 +48,12 @@
             <section class="board glass-panel">
                 <div class="board-header">
                     <div class="board-controls">
-                        <button id="prev-date-btn" class="btn outline-light btn-sm">&lt;</button>
-                        <h2 id="board-date-display">오늘의 스케줄</h2>
-                        <button id="next-date-btn" class="btn outline-light btn-sm">&gt;</button>
-                        <button id="today-btn" class="btn outline-light btn-sm ml-2">오늘</button>
+                        <div id="date-controls-wrapper" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <button id="prev-date-btn" class="btn outline-light btn-sm">&lt;</button>
+                            <h2 id="board-date-display" style="margin: 0;">오늘의 스케줄</h2>
+                            <button id="next-date-btn" class="btn outline-light btn-sm">&gt;</button>
+                            <button id="today-btn" class="btn outline-light btn-sm ml-2">오늘</button>
+                        </div>
                         <button id="mobile-menu-btn" class="mobile-only" style="display: none; background: transparent; border: none; font-size: 1.5rem; color: white; cursor: pointer; padding: 0.2rem 0.5rem; margin-left: auto;">☰</button>
                     </div>
                     
@@ -787,7 +789,7 @@
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- App Script -->
-    <script src="app.js?v=1.39"></script>
+    <script src="app.js?v=1.40"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

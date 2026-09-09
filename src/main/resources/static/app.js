@@ -3035,7 +3035,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const estimatedSalary = (totalNet * wage) + totalAllowance;
         
-        return { emp, wage, totalGross, totalRest, totalNet, totalAllowance, estimatedSalary, dailyBreakdown, weeklyBreakdown };
+        return { emp, year, month, wage, totalGross, totalRest, totalNet, totalAllowance, estimatedSalary, dailyBreakdown, weeklyBreakdown };
     }
 
     function renderSalaryView(baseDate) {
@@ -3384,6 +3384,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openPayslipModal(data) {
         payslipTitle.textContent = `${data.emp.name} 님의 급여 명세서`;
+        
+        const payslipMonthSelector = document.getElementById('payslip-month-selector');
+        if (payslipMonthSelector) {
+            payslipMonthSelector.value = `${data.year}-${String(data.month + 1).padStart(2, '0')}`;
+            payslipMonthSelector.onchange = (e) => {
+                const [newYear, newMonth] = e.target.value.split('-');
+                const newData = calculateEmployeeSalaryData(data.emp, parseInt(newYear, 10), parseInt(newMonth, 10) - 1);
+                openPayslipModal(newData);
+            };
+        }
         
         // Daily
         payslipDailyTbody.innerHTML = '';

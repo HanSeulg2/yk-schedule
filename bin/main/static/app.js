@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelChangePwBtn = document.getElementById('cancel-change-pw-btn');
     
     const exportExcelBtn = document.getElementById('export-excel-btn');
+    const copyTaxReportBtn = document.getElementById('copy-tax-report-btn');
     const payslipModal = document.getElementById('payslip-modal');
     const closePayslipBtn = document.getElementById('close-payslip-btn');
     const payslipTitle = document.getElementById('payslip-title');
@@ -3476,6 +3477,76 @@ document.addEventListener('DOMContentLoaded', () => {
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             XLSX.writeFile(wb, `${year}년_${month}월_급여대장_YKS.xlsx`);
         });
+    }
+
+    if (copyTaxReportBtn) {
+        copyTaxReportBtn.addEventListener('click', () => {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+            
+            const validData = currentSalaryData.filter(d => !d._raw.emp.excludeSalary);
+            if (validData.length === 0) {
+                alert('전송할 급여 내역이 없습니다.');
+                return;
+            }
+
+            let reportText = '';
+            validData.forEach(d => {
+                const emp = d._raw.emp;
+                const salary = Math.round(d._raw.estimatedSalary);
+                
+                const empScheds = schedules.filter(s => s.empId === emp.id).sort((a,b) => a.date.localeCompare(b.date));
+                let extraInfo = '';
+                if (empScheds.length > 0) {
+                    const firstDate = empScheds[0].date;
+                    const lastDate = empScheds[empScheds.length - 1].date;
+                    
+                    const [fY, fM, fD] = firstDate.split('-');
+                    const [lY, lM, lD] = lastDate.split('-');
+                    
+                    if (parseInt(fY) === year && parseInt(fM) === month) {
+                        extraInfo += ` 입사일 ${parseInt(fM)}/${parseInt(fD)}`;
+                    }
+                    if (emp.isResigned && parseInt(lY) === year && parseInt(lM) === month) {
+                        extraInfo += ` 퇴사일 ${parseInt(lM)}/${parseInt(lD)}`;
+                    }
+                }
+                reportText += `${emp.name} ${salary.toLocaleString()}원${extraInfo}\n`;
+            });
+            
+            // Trim last newline
+            reportText = reportText.trim();
+            
+            if (navigator.share && window.innerWidth <= 768) {
+                // Mobile Share
+                navigator.share({
+                    title: `${year}년 ${month}월 급여 내역`,
+                    text: reportText
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(reportText);
+                });
+            } else {
+                // Desktop or no share API
+                fallbackCopyTextToClipboard(reportText);
+            }
+        });
+    }
+    
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";  // avoid scrolling to bottom
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            alert('급여 내역이 클립보드에 복사되었습니다! 카톡에 붙여넣기 하세요.');
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+            alert('복사에 실패했습니다.');
+        }
+        document.body.removeChild(textArea);
     }
 
     if (viewMySalaryBtn) {

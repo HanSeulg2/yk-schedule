@@ -3494,8 +3494,12 @@ document.addEventListener('DOMContentLoaded', () => {
         payslipTitle.textContent = `${data.emp.name} 님의 급여 명세서`;
         
         const payslipMonthSelector = document.getElementById('payslip-month-selector');
+        const payslipMonthLabel = document.getElementById('payslip-month-label');
         if (payslipMonthSelector) {
             payslipMonthSelector.value = `${data.year}-${String(data.month + 1).padStart(2, '0')}`;
+            if (payslipMonthLabel) {
+                payslipMonthLabel.textContent = `${data.year}년 ${String(data.month + 1).padStart(2, '0')}월`;
+            }
             payslipMonthSelector.onchange = (e) => {
                 const [newYear, newMonth] = e.target.value.split('-');
                 const newData = calculateEmployeeSalaryData(data.emp, parseInt(newYear, 10), parseInt(newMonth, 10) - 1);

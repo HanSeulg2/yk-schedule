@@ -3490,13 +3490,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let reportText = '';
+            let totalAmount = 0;
+            const regulars = [];
+            const newHires = [];
+            const resignations = [];
+
             validData.forEach(d => {
                 const emp = d._raw.emp;
                 const salary = Math.round(d._raw.estimatedSalary);
+                totalAmount += salary;
                 
                 const empScheds = schedules.filter(s => s.empId === emp.id).sort((a,b) => a.date.localeCompare(b.date));
-                let extraInfo = '';
+                let isNew = false;
+                let isResigned = false;
+                let hireStr = '';
+                let resignStr = '';
+                
                 if (empScheds.length > 0) {
                     const firstDate = empScheds[0].date;
                     const lastDate = empScheds[empScheds.length - 1].date;
@@ -3505,17 +3514,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     const [lY, lM, lD] = lastDate.split('-');
                     
                     if (parseInt(fY) === year && parseInt(fM) === month) {
-                        extraInfo += ` 입사일 ${parseInt(fM)}/${parseInt(fD)}`;
+                        isNew = true;
+                        hireStr = `${parseInt(fM)}/${parseInt(fD)}`;
                     }
                     if (emp.isResigned && parseInt(lY) === year && parseInt(lM) === month) {
-                        extraInfo += ` 퇴사일 ${parseInt(lM)}/${parseInt(lD)}`;
+                        isResigned = true;
+                        resignStr = `${parseInt(lM)}/${parseInt(lD)}`;
                     }
                 }
-                reportText += `${emp.name} ${salary.toLocaleString()}원${extraInfo}\n`;
+                
+                if (isResigned) {
+                    resignations.push(`- ${emp.name}: ${salary.toLocaleString()}원 (퇴사: ${resignStr})`);
+                } else if (isNew) {
+                    newHires.push(`- ${emp.name}: ${salary.toLocaleString()}원 (입사: ${hireStr})`);
+                } else {
+                    regulars.push(`- ${emp.name}: ${salary.toLocaleString()}원`);
+                }
             });
             
-            // Trim last newline
-            reportText = reportText.trim();
+            let reportText = `[${year}년 ${month}월 급여 지급 내역]\n`;
+            
+            if (regulars.length > 0) {
+                reportText += `\n■ 기존 근로자\n${regulars.join('\n')}\n`;
+            }
+            if (newHires.length > 0) {
+                reportText += `\n■ 신규 입사자\n${newHires.join('\n')}\n`;
+            }
+            if (resignations.length > 0) {
+                reportText += `\n■ 퇴사자\n${resignations.join('\n')}\n`;
+            }
+            
+            reportText += `\n====================\n총 지급액: ${totalAmount.toLocaleString()}원`;
             
             if (navigator.share && window.innerWidth <= 768) {
                 // Mobile Share

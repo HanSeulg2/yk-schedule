@@ -2499,6 +2499,12 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineGrid.style.setProperty('--timeline-hours', TIMELINE_HOURS);
     }
 
+    function getAvatarHtml(name, color1, color2) {
+        const firstChar = name ? name.charAt(0) : '?';
+        const bg = (color1 && color2) ? `linear-gradient(135deg, ${color1}, ${color2})` : (color1 || '#3b82f6');
+        return `<div class="emp-avatar" style="width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: 700; color: white; background: ${bg}; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1;">${firstChar}</div>`;
+    }
+
     function renderTimeline(dateStr) {
         timelineGrid.innerHTML = '';
         const mobileList = document.getElementById('mobile-daily-list');
@@ -2534,7 +2540,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sortedEmployees.forEach(emp => {
             const lane = document.createElement('div');
             lane.className = 'timeline-lane';
-            lane.innerHTML = `<div class="lane-label">${emp.name}</div>`;
+            lane.innerHTML = `<div class="lane-label" style="display:flex; align-items:center; gap:6px;">${getAvatarHtml(emp.name, emp.color1, emp.color2)} <span>${emp.name}</span></div>`;
             
             const empSchedules = dailySchedules.filter(s => s.empId === emp.id).sort((a,b) => a.start.localeCompare(b.start));
             if (empSchedules.length > 0) hasSchedules = true;
@@ -2561,9 +2567,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const diff = (eH - sH) + (eM - sM)/60;
                     
                     card.innerHTML = `
-                        <div>
-                            <div class="emp-name">${sched.empName}</div>
-                            <div class="duration">${diff}시간 근무</div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            ${getAvatarHtml(sched.empName, sched.color1, sched.color2)}
+                            <div>
+                                <div class="emp-name">${sched.empName}</div>
+                                <div class="duration">${diff}시간 근무</div>
+                            </div>
                         </div>
                         <div style="text-align: right;">
                             <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>
@@ -2668,7 +2677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Desktop / Tablet 렌더링
         sortedEmployees.forEach(emp => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="emp-name-col" style="border-left: 4px solid ${emp.color1}">${emp.name}</td>`;
+            tr.innerHTML = `<td class="emp-name-col" style="border-left: 4px solid ${emp.color1}"><div style="display:flex; align-items:center; gap:6px;">${getAvatarHtml(emp.name, emp.color1, emp.color2)} <span>${emp.name}</span></div></td>`;
             weekDates.forEach(date => {
                 const td = document.createElement('td');
                 const empDayScheds = schedules.filter(s => s.empId === emp.id && s.date === formatDateString(date)).sort((a,b) => a.start.localeCompare(b.start));
@@ -2751,9 +2760,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const diff = (eH - sH) + (eM - sM)/60;
                         
                         card.innerHTML = `
-                            <div>
-                                <div class="emp-name">${sched.empName}</div>
-                                <div class="duration">${diff}시간 근무</div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                ${getAvatarHtml(sched.empName, sched.color1, sched.color2)}
+                                <div>
+                                    <div class="emp-name">${sched.empName}</div>
+                                    <div class="duration">${diff}시간 근무</div>
+                                </div>
                             </div>
                             <div style="text-align: right;">
                                 <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>
@@ -2803,7 +2815,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.style.setProperty('--bg-color-2', sched.color2);
                 item.title = `${sched.empName} ${sched.start}~${sched.end}`;
                 item.innerHTML = `
-                    ${sched.empName} (${sched.start}~${sched.end})
+                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">
+                        ${getAvatarHtml(sched.empName, sched.color1, sched.color2).replace('24px', '18px').replace('24px', '18px').replace('0.75rem', '0.6rem')}
+                        <div style="display:flex; flex-direction:column; overflow:hidden;">
+                            <span style="font-weight:600; font-size:0.75rem; line-height:1; margin-bottom:1px;">${sched.empName}</span>
+                            <span style="font-size:0.65rem; color:rgba(255,255,255,0.7); line-height:1;">${sched.start}</span>
+                        </div>
+                    </div>
                     <button class="delete-monthly-btn" data-id="${sched.id}">&times;</button>
                 `;
                 item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
@@ -2887,9 +2905,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const diff = (eH - sH) + (eM - sM)/60;
             
             card.innerHTML = `
-                <div>
-                    <div class="emp-name">${sched.empName}</div>
-                    <div class="duration">${diff}시간 근무</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    ${getAvatarHtml(sched.empName, sched.color1, sched.color2)}
+                    <div>
+                        <div class="emp-name">${sched.empName}</div>
+                        <div class="duration">${diff}시간 근무</div>
+                    </div>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
                     <div class="time-range" style="font-size: 1.1rem; font-weight: bold; color: white;">${sched.start} ~ ${sched.end}</div>

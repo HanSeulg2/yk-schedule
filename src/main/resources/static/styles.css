@@ -902,8 +902,8 @@ input:focus, select:focus {
 }
 
 .monthly-schedule-item {
-    background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-2));
-    padding: 0.2rem 0.4rem;
+    background: rgba(0,0,0,0.3);
+    padding: 0.3rem 0.4rem;
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 500;
@@ -1590,6 +1590,11 @@ input:focus, select:focus {
         font-size: 0;
         box-shadow: none;
         flex-shrink: 0;
+        /* For dot mode, background color must be color1 again, which is in css var */
+        background: var(--bg-color-1) !important;
+    }
+    .monthly-schedule-item > * {
+        display: none !important;
     }
     .mobile-monthly-detail {
         min-height: 200px;

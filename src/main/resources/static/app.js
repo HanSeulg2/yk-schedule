@@ -986,6 +986,88 @@ document.addEventListener('DOMContentLoaded', () => {
         salaryPasswordInput.focus();
     });
 
+    // --- Mobile Bottom Nav & More Menu Logic ---
+    const mobileBottomNavItems = document.querySelectorAll('.mobile-bottom-nav .nav-item');
+    const mobileMoreMenu = document.getElementById('mobile-more-menu');
+    const navMoreInventoryBtn = document.getElementById('nav-more-inventory');
+    const navMoreRulesBtn = document.getElementById('nav-more-rules');
+    const navMoreAdminBtn = document.getElementById('nav-more-admin');
+    let isMoreMenuOpen = false;
+
+    function closeMoreMenu() {
+        if (!isMoreMenuOpen) return;
+        const modalContent = mobileMoreMenu.querySelector('.modal-content');
+        modalContent.style.transform = 'translateY(100%)';
+        setTimeout(() => {
+            mobileMoreMenu.style.display = 'none';
+        }, 300);
+        isMoreMenuOpen = false;
+    }
+
+    function openMoreMenu() {
+        mobileMoreMenu.style.display = 'flex';
+        void mobileMoreMenu.offsetWidth; // force reflow
+        const modalContent = mobileMoreMenu.querySelector('.modal-content');
+        modalContent.style.transform = 'translateY(0)';
+        isMoreMenuOpen = true;
+    }
+
+    if (mobileBottomNavItems) {
+        mobileBottomNavItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const target = item.dataset.target;
+                
+                if (target === 'more') {
+                    if (isMoreMenuOpen) closeMoreMenu();
+                    else openMoreMenu();
+                    return;
+                }
+                
+                if (isMoreMenuOpen) closeMoreMenu();
+                
+                if (target === 'home') {
+                    if(viewMode === 'monthly') viewMonthlyBtn.click();
+                    else if (viewMode === 'weekly') viewWeeklyBtn.click();
+                    else viewDailyBtn.click();
+                } else if (target === 'handover') {
+                    if(viewHandoverBtn) viewHandoverBtn.click();
+                } else if (target === 'salary') {
+                    if(viewMySalaryBtn) viewMySalaryBtn.click();
+                }
+            });
+        });
+    }
+
+    if (mobileMoreMenu) {
+        mobileMoreMenu.addEventListener('click', (e) => {
+            if (e.target === mobileMoreMenu) {
+                closeMoreMenu();
+            }
+        });
+    }
+
+    if (navMoreInventoryBtn) {
+        navMoreInventoryBtn.addEventListener('click', () => {
+            viewInventoryBtn.click();
+            closeMoreMenu();
+        });
+    }
+
+    if (navMoreRulesBtn) {
+        navMoreRulesBtn.addEventListener('click', () => {
+            if(viewRulesBtn) viewRulesBtn.click();
+            closeMoreMenu();
+        });
+    }
+
+    if (navMoreAdminBtn) {
+        navMoreAdminBtn.addEventListener('click', () => {
+            viewSalaryBtn.click();
+            closeMoreMenu();
+        });
+    }
+    // -------------------------------------------
+
     if (cancelEditSchedBtn) {
         cancelEditSchedBtn.addEventListener('click', () => {
             editScheduleModal.style.display = 'none';
@@ -1213,6 +1295,31 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (mode !== 'inventory' && mode !== 'disposal' && mode !== 'rules' && mode !== 'handover') {
             updateBoard();
+        }
+        
+        syncMobileNav(mode);
+    }
+    
+    function syncMobileNav(view) {
+        if (window.innerWidth > 768) return;
+        const navItems = document.querySelectorAll('.mobile-bottom-nav .nav-item');
+        if (!navItems || navItems.length === 0) return;
+        
+        navItems.forEach(nav => nav.classList.remove('active'));
+        const viewToggles = document.querySelector('.view-toggles');
+        
+        if (view === 'daily' || view === 'weekly' || view === 'monthly') {
+            document.querySelector('.mobile-bottom-nav .nav-item[data-target="home"]').classList.add('active');
+            if(viewToggles) viewToggles.style.display = '';
+        } else if (view === 'handover') {
+            document.querySelector('.mobile-bottom-nav .nav-item[data-target="handover"]').classList.add('active');
+            if(viewToggles) viewToggles.style.display = 'none';
+        } else if (view === 'my-salary') {
+            document.querySelector('.mobile-bottom-nav .nav-item[data-target="salary"]').classList.add('active');
+            if(viewToggles) viewToggles.style.display = 'none';
+        } else {
+            document.querySelector('.mobile-bottom-nav .nav-item[data-target="more"]').classList.add('active');
+            if(viewToggles) viewToggles.style.display = 'none';
         }
     }
     
@@ -3546,16 +3653,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             reportText += `\n====================\n총 지급액: ${totalAmount.toLocaleString()}원`;
             
-            if (navigator.share && window.innerWidth <= 768) {
-                // Mobile Share
-                navigator.share({
-                    title: `${year}년 ${month}월 급여 내역`,
-                    text: reportText
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(reportText).then(() => {
+                    alert('✅ 급여 내역이 복사되었습니다!\n카카오톡에 바로 붙여넣기 해주세요.');
                 }).catch(err => {
                     fallbackCopyTextToClipboard(reportText);
                 });
             } else {
-                // Desktop or no share API
                 fallbackCopyTextToClipboard(reportText);
             }
         });
@@ -3564,16 +3668,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function fallbackCopyTextToClipboard(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
-        textArea.style.position = "fixed";  // avoid scrolling to bottom
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
         try {
             document.execCommand('copy');
-            alert('급여 내역이 클립보드에 복사되었습니다! 카톡에 붙여넣기 하세요.');
+            alert('✅ 급여 내역이 복사되었습니다!\n카카오톡에 바로 붙여넣기 해주세요.');
         } catch (err) {
             console.error('Fallback: Oops, unable to copy', err);
-            alert('복사에 실패했습니다.');
+            alert('❌ 복사에 실패했습니다. 다른 브라우저를 이용해주세요.');
         }
         document.body.removeChild(textArea);
     }

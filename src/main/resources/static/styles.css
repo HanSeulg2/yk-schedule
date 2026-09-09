@@ -996,6 +996,85 @@ input:focus, select:focus {
     font-size: 0.9rem;
 }
 
+/* Payslip Redesign (Toss Style) */
+.payslip-header .total-amount {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.5px;
+}
+.payslip-divider {
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(255,255,255,0.2) 50%, transparent 50%);
+    background-size: 8px 1px;
+    background-repeat: repeat-x;
+    margin: 20px 0;
+}
+.payslip-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+.payslip-summary-row .label { color: var(--text-muted); }
+.payslip-summary-row .value { font-weight: 600; color: white; }
+.payslip-summary-row.highlight .value { color: var(--accent); }
+
+.payslip-list-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: white;
+}
+.payslip-list-title span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.payslip-daily-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.payslip-daily-item:last-child {
+    border-bottom: none;
+}
+.payslip-daily-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.payslip-date-badge {
+    width: 44px;
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+    padding: 6px 0;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+.payslip-date-badge .month { font-size: 0.65rem; color: var(--text-muted); display: block; line-height: 1; margin-bottom: 2px;}
+.payslip-date-badge .day { font-size: 1rem; font-weight: 700; color: white; line-height: 1;}
+.payslip-time-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.payslip-time-info .time { font-size: 0.95rem; font-weight: 500; color: white; }
+.payslip-time-info .hours { font-size: 0.75rem; color: var(--text-muted); }
+.payslip-daily-right {
+    text-align: right;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: white;
+}
+
 /* Edit Employee Color Swatches */
 .color-swatch {
     width: 32px;

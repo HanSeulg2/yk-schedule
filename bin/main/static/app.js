@@ -3503,55 +3503,74 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
         
-        // Daily
-        payslipDailyTbody.innerHTML = '';
-        data.dailyBreakdown.forEach(d => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${d.date.slice(5).replace('-', '.')}</td>
-                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center;">
-                    <div style="white-space: nowrap;">${d.time}</div>
-                    <div style="color:var(--text-muted); font-size:0.75em; white-space: nowrap;">(${d.gross.toFixed(1)}h)</div>
-                </td>
-                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center;">
-                    <div style="white-space: nowrap;">${d.net.toFixed(1)}h</div>
-                    <div style="color:var(--danger); font-size:0.75em; white-space: nowrap;">(-${d.rest}h)</div>
-                </td>
-                <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: right; white-space: nowrap;">${Math.round(d.pay).toLocaleString()}원</td>
-            `;
-            payslipDailyTbody.appendChild(tr);
-        });
-        if(data.dailyBreakdown.length === 0) payslipDailyTbody.innerHTML = '<tr><td colspan="4" class="empty-state">내역 없음</td></tr>';
+        // Summary
+        document.getElementById('payslip-total-hours').textContent = `${data.totalNet.toFixed(1)}시간`;
+        document.getElementById('payslip-applied-wage').textContent = `${data.wage.toLocaleString()}원`;
+        document.getElementById('payslip-base-total').textContent = `${Math.round(data.totalNet * data.wage).toLocaleString()}원`;
+        document.getElementById('payslip-holiday-total').textContent = `+ ${Math.round(data.totalAllowance).toLocaleString()}원`;
+        document.getElementById('payslip-working-days').textContent = `총 ${data.dailyBreakdown.length}일 근무`;
 
-        // Weekly
-        payslipWeeklyTbody.innerHTML = '';
-        if (data.emp.applyHolidayAllowance === false) {
-            payslipWeeklyTbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="color: var(--danger);">설정에 의해 주휴수당 지급 대상에서 제외된 근무자입니다.</td></tr>';
+        const excludeWarning = document.getElementById('payslip-exclude-warning');
+        if (data.emp.excludeSalary) {
+            payslipTotalAmount.innerHTML = `<span style="text-decoration: line-through; color: var(--text-muted); font-size: 1.5rem;">${Math.round(data.estimatedSalary).toLocaleString()}</span>`;
+            excludeWarning.style.display = 'block';
         } else {
-            data.weeklyBreakdown.forEach(w => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${w.weekNo}주차</td>
-                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${w.hours.toFixed(1)}h</td>
-                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: center; white-space: nowrap;">${w.isQualified ? '<span style="color:var(--success)">O</span>' : '<span style="color:var(--danger)">X</span>'}</td>
-                    <td style="padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--panel-border); text-align: right; white-space: nowrap;">${Math.round(w.allowance).toLocaleString()}원</td>
-                `;
-                payslipWeeklyTbody.appendChild(tr);
-            });
-            if(data.weeklyBreakdown.length === 0) payslipWeeklyTbody.innerHTML = '<tr><td colspan="4" class="empty-state">내역 없음</td></tr>';
+            payslipTotalAmount.textContent = Math.round(data.estimatedSalary).toLocaleString();
+            excludeWarning.style.display = 'none';
         }
 
-        // Totals
-        const payslipBaseTotal = document.getElementById('payslip-base-total');
-        const payslipHolidayTotal = document.getElementById('payslip-holiday-total');
-        if (payslipBaseTotal) payslipBaseTotal.textContent = Math.round(data.totalNet * data.wage).toLocaleString() + '원';
-        if (payslipHolidayTotal) payslipHolidayTotal.textContent = Math.round(data.totalAllowance).toLocaleString() + '원';
-        if (payslipTotalAmount) {
-            if (data.emp.excludeSalary) {
-                payslipTotalAmount.innerHTML = `<span style="text-decoration: line-through; color: var(--text-muted); font-size: 1.2rem;">${Math.round(data.estimatedSalary).toLocaleString()}원</span> <span style="color: #10b981; font-size: 1rem;">(절감액)</span>`;
-            } else {
-                payslipTotalAmount.textContent = Math.round(data.estimatedSalary).toLocaleString() + '원';
-            }
+        // Daily
+        const dailyList = document.getElementById('payslip-daily-list');
+        dailyList.innerHTML = '';
+        data.dailyBreakdown.forEach(d => {
+            const [y, m, day] = d.date.split('-');
+            const div = document.createElement('div');
+            div.className = 'payslip-daily-item';
+            div.innerHTML = `
+                <div class="payslip-daily-left">
+                    <div class="payslip-date-badge">
+                        <span class="month">${parseInt(m)}월</span>
+                        <span class="day">${day}</span>
+                    </div>
+                    <div class="payslip-time-info">
+                        <span class="time">${d.time}</span>
+                        <span class="hours">실근무 ${d.net.toFixed(1)}시간 <span style="color:var(--danger); font-size:0.7em;">(-${d.rest}h휴게)</span></span>
+                    </div>
+                </div>
+                <div class="payslip-daily-right">
+                    ${Math.round(d.pay).toLocaleString()}원
+                </div>
+            `;
+            dailyList.appendChild(div);
+        });
+        if(data.dailyBreakdown.length === 0) dailyList.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 1rem 0;">근무 내역이 없습니다.</div>';
+
+        // Weekly
+        const weeklyList = document.getElementById('payslip-weekly-list');
+        weeklyList.innerHTML = '';
+        if (data.emp.applyHolidayAllowance === false) {
+            weeklyList.innerHTML = '<div style="color: var(--danger); font-size: 0.9rem; text-align: center; padding: 1rem 0;">설정에 의해 주휴수당 지급 대상에서 제외된 근무자입니다.</div>';
+        } else {
+            data.weeklyBreakdown.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'payslip-daily-item';
+                div.innerHTML = `
+                    <div class="payslip-daily-left">
+                        <div class="payslip-date-badge" style="background: rgba(99,102,241,0.1);">
+                            <span class="day" style="color:#818cf8; font-size: 0.9rem;">${w.weekNo}주</span>
+                        </div>
+                        <div class="payslip-time-info">
+                            <span class="time">총 ${w.hours.toFixed(1)}시간 근무</span>
+                            <span class="hours">${w.isQualified ? '<span style="color:var(--success)">주 15시간 이상 충족</span>' : '<span style="color:var(--danger)">조건 미달</span>'}</span>
+                        </div>
+                    </div>
+                    <div class="payslip-daily-right" style="${w.isQualified ? 'color:var(--accent)' : 'color:var(--text-muted); text-decoration:line-through'}">
+                        + ${Math.round(w.allowance).toLocaleString()}원
+                    </div>
+                `;
+                weeklyList.appendChild(div);
+            });
+            if(data.weeklyBreakdown.length === 0) weeklyList.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding: 1rem 0;">내역이 없습니다.</div>';
         }
 
         payslipModal.style.display = 'flex';

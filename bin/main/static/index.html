@@ -587,11 +587,15 @@
                 <button id="close-payslip-btn" class="btn text" style="color:#94a3b8; font-size: 1.2rem; padding: 0; line-height: 1;">&times;</button>
             </div>
             
-            <div style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
+            <div class="payslip-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
                 <!-- 급여 총액 부분 -->
                 <div class="payslip-header" style="text-align: center; margin-bottom: 1.5rem;">
                     <div style="margin-bottom: 0.8rem;">
-                        <input type="month" id="payslip-month-selector" style="background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600; text-align: center; font-family: inherit;">
+                        <label for="payslip-month-selector" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99,102,241,0.4); border-radius: 20px; padding: 0.4rem 1rem; cursor: pointer; transition: all 0.2s;">
+                            <span style="font-size: 1.1rem; line-height: 1;">📅</span>
+                            <input type="month" id="payslip-month-selector" style="background: transparent; color: #818cf8; border: none; font-size: 0.95rem; font-weight: 700; text-align: center; font-family: inherit; outline: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 0.8rem; color: #818cf8; line-height: 1;">▼</span>
+                        </label>
                     </div>
                     <h2 style="font-size: 1rem; font-weight: 500; color: #94a3b8; margin-bottom: 0.5rem; margin-top: 0;">이번 달 예상 급여</h2>
                     <div class="total-amount" style="font-size: 2.2rem; font-weight: 700; color: white; letter-spacing: -0.5px;">
@@ -874,7 +878,7 @@
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- App Script -->
-    <script src="app.js?v=1.55"></script>
+    <script src="app.js?v=1.56"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

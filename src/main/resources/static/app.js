@@ -2532,9 +2532,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getAvatarHtml(name, color1, color2) {
-        const firstChar = name ? name.charAt(0) : '?';
+        const displayChar = name ? (name.length >= 2 ? name.charAt(1) : name.charAt(0)) : '?';
         const bg = (color1 && color2) ? `linear-gradient(135deg, ${color1}, ${color2})` : (color1 || '#3b82f6');
-        return `<div class="emp-avatar" style="width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: 700; color: white; background: ${bg}; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1;">${firstChar}</div>`;
+        return `<div class="emp-avatar" style="width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: 700; color: white; background: ${bg}; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1;">${displayChar}</div>`;
     }
 
     function renderTimeline(dateStr) {

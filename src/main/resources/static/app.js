@@ -2847,7 +2847,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.style.setProperty('--bg-color-2', sched.color2);
                 item.title = `${sched.empName} ${sched.start}~${sched.end}`;
                 item.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">
+                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; pointer-events:none;">
                         ${getAvatarHtml(sched.empName, sched.color1, sched.color2).replace('24px', '18px').replace('24px', '18px').replace('0.75rem', '0.6rem')}
                         <div style="display:flex; flex-direction:column; overflow:hidden;">
                             <span style="font-weight:600; font-size:0.75rem; line-height:1; margin-bottom:1px;">${sched.empName}</span>
@@ -2864,16 +2864,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         passwordModal.style.display = 'flex';
                     });
                 });
-                // Handle PC double click
+                // Handle double click to edit
                 item.addEventListener('dblclick', (e) => {
                     e.preventDefault();
-                    if (window.innerWidth <= 768) {
-                        // Let cell click handle it on mobile
-                    } else {
-                        pendingScheduleId = sched.id;
-                        passwordTargetAction = 'edit-schedule';
-                        passwordModal.style.display = 'flex';
-                    }
+                    e.stopPropagation();
+                    pendingScheduleId = sched.id;
+                    passwordTargetAction = 'edit-schedule';
+                    passwordModal.style.display = 'flex';
                 });
 
                 // On mobile, just let the tap pass through to the cell
@@ -3000,7 +2997,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.style.setProperty('--bg-color-2', sched.color2);
                 item.title = `${sched.empName} ${sched.start}~${sched.end}`;
                 item.innerHTML = `
-                    ${sched.empName} (${sched.start}~${sched.end})
+                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; pointer-events:none;">
+                        ${getAvatarHtml(sched.empName, sched.color1, sched.color2).replace('24px', '18px').replace('24px', '18px').replace('0.75rem', '0.6rem')}
+                        <div style="display:flex; flex-direction:column; overflow:hidden;">
+                            <span style="font-weight:600; font-size:0.75rem; line-height:1; margin-bottom:1px;">${sched.empName}</span>
+                            <span style="font-size:0.65rem; color:rgba(255,255,255,0.7); line-height:1;">${sched.start}</span>
+                        </div>
+                    </div>
                 `;
                 
                 // Admin Double Click Edit

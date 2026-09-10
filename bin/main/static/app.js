@@ -2532,9 +2532,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getAvatarHtml(name, color1, color2) {
-        const firstChar = name ? name.charAt(0) : '?';
+        const displayChar = name ? (name.length >= 2 ? name.charAt(1) : name.charAt(0)) : '?';
         const bg = (color1 && color2) ? `linear-gradient(135deg, ${color1}, ${color2})` : (color1 || '#3b82f6');
-        return `<div class="emp-avatar" style="width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: 700; color: white; background: ${bg}; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1;">${firstChar}</div>`;
+        return `<div class="emp-avatar" style="width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: 700; color: white; background: ${bg}; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1;">${displayChar}</div>`;
     }
 
     function renderTimeline(dateStr) {
@@ -2847,7 +2847,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.style.setProperty('--bg-color-2', sched.color2);
                 item.title = `${sched.empName} ${sched.start}~${sched.end}`;
                 item.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">
+                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; pointer-events:none;">
                         ${getAvatarHtml(sched.empName, sched.color1, sched.color2).replace('24px', '18px').replace('24px', '18px').replace('0.75rem', '0.6rem')}
                         <div style="display:flex; flex-direction:column; overflow:hidden;">
                             <span style="font-weight:600; font-size:0.75rem; line-height:1; margin-bottom:1px;">${sched.empName}</span>
@@ -2864,16 +2864,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         passwordModal.style.display = 'flex';
                     });
                 });
-                // Handle PC double click
+                // Handle double click to edit
                 item.addEventListener('dblclick', (e) => {
                     e.preventDefault();
-                    if (window.innerWidth <= 768) {
-                        // Let cell click handle it on mobile
-                    } else {
-                        pendingScheduleId = sched.id;
-                        passwordTargetAction = 'edit-schedule';
-                        passwordModal.style.display = 'flex';
-                    }
+                    e.stopPropagation();
+                    pendingScheduleId = sched.id;
+                    passwordTargetAction = 'edit-schedule';
+                    passwordModal.style.display = 'flex';
                 });
 
                 // On mobile, just let the tap pass through to the cell
@@ -3000,7 +2997,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.style.setProperty('--bg-color-2', sched.color2);
                 item.title = `${sched.empName} ${sched.start}~${sched.end}`;
                 item.innerHTML = `
-                    ${sched.empName} (${sched.start}~${sched.end})
+                    <div style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; pointer-events:none;">
+                        ${getAvatarHtml(sched.empName, sched.color1, sched.color2).replace('24px', '18px').replace('24px', '18px').replace('0.75rem', '0.6rem')}
+                        <div style="display:flex; flex-direction:column; overflow:hidden;">
+                            <span style="font-weight:600; font-size:0.75rem; line-height:1; margin-bottom:1px;">${sched.empName}</span>
+                            <span style="font-size:0.65rem; color:rgba(255,255,255,0.7); line-height:1;">${sched.start}</span>
+                        </div>
+                    </div>
                 `;
                 
                 // Admin Double Click Edit

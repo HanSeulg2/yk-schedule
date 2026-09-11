@@ -1109,7 +1109,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (deleteEditSchedBtn) {
         deleteEditSchedBtn.addEventListener('click', () => {
-            showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+            const sched = schedules.find(s => s.id === pendingScheduleId);
+            const msg = sched ? `${sched.empName} 님의 근무를 삭제하시겠습니까?` : '해당 근무를 삭제하시겠습니까?';
+            showConfirm(msg, () => {
                 if (pendingScheduleId) {
                     removeSchedule(pendingScheduleId);
                     editScheduleModal.style.display = 'none';
@@ -2639,11 +2641,28 @@ document.addEventListener('DOMContentLoaded', () => {
         block.innerHTML = `<span>${sched.start}~${sched.end}</span><button class="delete-schedule" data-id="${sched.id}">&times;</button>`;
         block.querySelector('.delete-schedule').addEventListener('click', (e) => {
             e.stopPropagation(); 
-            showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+            showConfirm(`${sched.empName} 님의 근무를 삭제하시겠습니까?`, () => {
                 pendingScheduleId = e.target.dataset.id;
                 passwordTargetAction = 'delete-schedule';
                 passwordModal.style.display = 'flex';
             });
+        });
+        
+        let lastBlockClickTime = 0;
+        block.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-schedule')) return;
+            const currentTime = new Date().getTime();
+            const timeDiff = currentTime - lastBlockClickTime;
+            if (timeDiff < 400 && timeDiff > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                pendingScheduleId = sched.id;
+                passwordTargetAction = 'edit-schedule';
+                passwordModal.style.display = 'flex';
+                lastBlockClickTime = 0;
+            } else {
+                lastBlockClickTime = currentTime;
+            }
         });
         block.addEventListener('dblclick', () => {
             pendingScheduleId = sched.id;
@@ -2721,12 +2740,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.innerHTML = `${sched.start}~${sched.end}<button class="delete-weekly-btn" data-id="${sched.id}">&times;</button>`;
                     item.querySelector('.delete-weekly-btn').addEventListener('click', (e) => {
                         e.stopPropagation(); 
-                        showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                        showConfirm(`${sched.empName} 님의 근무를 삭제하시겠습니까?`, () => {
                             pendingScheduleId = e.target.dataset.id;
                             passwordTargetAction = 'delete-schedule';
                             passwordModal.style.display = 'flex';
                         });
                     });
+                    
+                    let lastWeeklyItemClickTime = 0;
+                    item.addEventListener('click', (e) => {
+                        if (e.target.closest('.delete-weekly-btn')) return;
+                        const currentTime = new Date().getTime();
+                        const timeDiff = currentTime - lastWeeklyItemClickTime;
+                        if (timeDiff < 400 && timeDiff > 0) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            pendingScheduleId = sched.id;
+                            passwordTargetAction = 'edit-schedule';
+                            passwordModal.style.display = 'flex';
+                            lastWeeklyItemClickTime = 0;
+                        } else {
+                            lastWeeklyItemClickTime = currentTime;
+                        }
+                    });
+
                     item.addEventListener('dblclick', () => {
                         pendingScheduleId = sched.id;
                         passwordTargetAction = 'edit-schedule';
@@ -2858,13 +2895,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
                     e.stopPropagation(); 
-                    showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                    showConfirm(`${sched.empName} 님의 근무를 삭제하시겠습니까?`, () => {
                         pendingScheduleId = e.target.dataset.id;
                         passwordTargetAction = 'delete-schedule';
                         passwordModal.style.display = 'flex';
                     });
                 });
-                // Handle double click to edit
+                
+                // Handle double click to edit (with manual double-tap for mobile robustness)
+                let lastClickTime = 0;
+                item.addEventListener('click', (e) => {
+                    // Ignore if clicked on the delete button
+                    if (e.target.closest('.delete-monthly-btn')) return;
+                    
+                    const currentTime = new Date().getTime();
+                    const timeDiff = currentTime - lastClickTime;
+                    
+                    if (timeDiff < 400 && timeDiff > 0) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        pendingScheduleId = sched.id;
+                        passwordTargetAction = 'edit-schedule';
+                        passwordModal.style.display = 'flex';
+                        lastClickTime = 0;
+                    } else {
+                        lastClickTime = currentTime;
+                    }
+                });
                 item.addEventListener('dblclick', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -2949,7 +3006,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             card.querySelector('.mobile-sched-delete-btn').addEventListener('click', (e) => {
                 e.stopPropagation(); 
-                showConfirm('해당 근무를 삭제하시겠습니까?', () => {
+                showConfirm(`${sched.empName} 님의 근무를 삭제하시겠습니까?`, () => {
                     pendingScheduleId = e.target.dataset.id;
                     passwordTargetAction = 'delete-schedule';
                     passwordModal.style.display = 'flex';
@@ -3007,6 +3064,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 
                 // Admin Double Click Edit
+                // Admin Delete Button
+                item.innerHTML += `<button class="delete-monthly-btn" data-id="${sched.id}">&times;</button>`;
+                item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
+                    e.stopPropagation(); 
+                    showConfirm(`${sched.empName} 님의 근무를 삭제하시겠습니까?`, () => {
+                        pendingScheduleId = e.target.dataset.id;
+                        passwordTargetAction = 'delete-schedule';
+                        passwordModal.style.display = 'flex';
+                    });
+                });
+                
+                // Admin Double Click Edit (with manual double-tap for mobile robustness)
+                let lastClickTime = 0;
+                item.addEventListener('click', (e) => {
+                    // Ignore if clicked on the delete button
+                    if (e.target.closest('.delete-monthly-btn')) return;
+                    
+                    const currentTime = new Date().getTime();
+                    const timeDiff = currentTime - lastClickTime;
+                    
+                    if (timeDiff < 400 && timeDiff > 0) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        pendingScheduleId = sched.id;
+                        editSchedDateInput.value = sched.date;
+                        editSchedDateWrapper.style.display = 'block';
+                        editSchedWeekdayWrapper.style.display = 'none';
+                        passwordTargetAction = 'edit-schedule';
+                        passwordModal.style.display = 'flex';
+                        lastClickTime = 0;
+                    } else {
+                        lastClickTime = currentTime;
+                    }
+                });
+
                 item.addEventListener('dblclick', (e) => {
                     e.stopPropagation();
                     pendingScheduleId = sched.id;
@@ -3015,17 +3107,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     editSchedWeekdayWrapper.style.display = 'none';
                     passwordTargetAction = 'edit-schedule';
                     passwordModal.style.display = 'flex';
-                });
-                
-                // Admin Delete Button - Optional: we can just rely on dbl click, but let's add delete button
-                item.innerHTML += `<button class="delete-monthly-btn" data-id="${sched.id}">&times;</button>`;
-                item.querySelector('.delete-monthly-btn').addEventListener('click', (e) => {
-                    e.stopPropagation(); 
-                    showConfirm('해당 근무를 삭제하시겠습니까?', () => {
-                        pendingScheduleId = e.target.dataset.id;
-                        passwordTargetAction = 'delete-schedule';
-                        passwordModal.style.display = 'flex';
-                    });
                 });
                 
                 cell.appendChild(item);
